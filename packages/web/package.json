@@ -19,6 +19,8 @@
   },
   "dependencies": {
     "@devhub/components": "0.93.0",
+    "preact": "10.0.0-rc.1",
+    "preact-compat": "3.19.0",
     "react": "16.8.6",
     "react-app-polyfill": "1.0.1",
     "react-art": "16.8.6",

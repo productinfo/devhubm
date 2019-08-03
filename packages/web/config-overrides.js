@@ -1,6 +1,5 @@
 const fs = require('fs')
 const path = require('path')
-const resolve = require('resolve')
 const webpack = require('webpack')
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
   .BundleAnalyzerPlugin
@@ -16,6 +15,9 @@ const appIncludes = [
 
 module.exports = function override(config, env) {
   config.resolve.alias['deepmerge$'] = 'deepmerge/dist/umd.js'
+  config.resolve.alias['react'] = 'preact/compat'
+  config.resolve.alias['react-dom/test-utils'] = 'preact/test-utils"'
+  config.resolve.alias['react-dom$'] = 'preact/compat'
 
   // allow importing from outside of src folder
   config.resolve.plugins = config.resolve.plugins.filter(
