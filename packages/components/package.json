@@ -16,6 +16,8 @@
     "@bugsnag/plugin-react": "6.1.0",
     "@devhub/core": "0.94.1",
     "@octokit/rest": "16.20.0",
+    "@wora/cache-persist": "2.0.0-rc.2",
+    "@wora/redux": "0.0.1",
     "axios": "0.18.0",
     "bugsnag-react-native": "2.16.0",
     "fbemitter": "2.1.1",
@@ -40,9 +42,7 @@
     "react-spring": "9.0.0-beta.34",
     "react-test-renderer": "16.9.0",
     "react-window": "1.8.5",
-    "redux": "4.0.1",
     "redux-devtools-extension": "2.13.8",
-    "redux-persist": "5.10.0",
     "redux-saga": "1.0.2",
     "reselect": "4.0.0",
     "yup": "0.27.0"

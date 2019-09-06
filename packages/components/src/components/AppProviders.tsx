@@ -1,6 +1,5 @@
 import React from 'react'
-import { Provider as ReduxProvider } from 'react-redux'
-import { PersistGate } from 'redux-persist/integration/react'
+import ReduxProvider from '@wora/redux/lib/react/ReduxProvider'
 
 import { HelmetProvider } from '../libs/helmet'
 import { SafeAreaProvider } from '../libs/safe-area-view'
@@ -12,7 +11,7 @@ import { DeepLinkProvider } from './context/DeepLinkContext'
 import { AppLayoutProvider } from './context/LayoutContext'
 import { ThemeProvider } from './context/ThemeContext'
 
-const { persistor, store } = configureStore()
+const { store } = configureStore()
 
 export interface AppProvidersProps {
   children: React.ReactNode
@@ -21,8 +20,7 @@ export interface AppProvidersProps {
 export function AppProviders(props: AppProvidersProps) {
   return (
     <HelmetProvider>
-      <ReduxProvider store={store}>
-        <PersistGate loading={null} persistor={persistor}>
+      <ReduxProvider store={store} loading={null}>
           <DeepLinkProvider>
             <AppLayoutProvider>
               <ColumnFocusProvider>
@@ -36,7 +34,6 @@ export function AppProviders(props: AppProvidersProps) {
               </ColumnFocusProvider>
             </AppLayoutProvider>
           </DeepLinkProvider>
-        </PersistGate>
       </ReduxProvider>
     </HelmetProvider>
   )

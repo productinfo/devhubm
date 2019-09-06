@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { REHYDRATE } from 'redux-persist'
+import { REHYDRATE } from '@wora/redux'
 
 import { Reducer } from '../types'
 
@@ -15,13 +15,10 @@ export const countReducer: Reducer<State> = (
 ): State => {
   switch (action.type) {
     case REHYDRATE as any: {
-      const { err, payload } = action as any
-
-      const counters: State = err ? state : payload && payload.counters
 
       return {
         ...initialState,
-        ...(_.pick(counters, Object.keys(initialState)) as any),
+        ...(_.pick(state, Object.keys(initialState)) as any),
       }
     }
 

@@ -2,7 +2,7 @@ import immer from 'immer'
 import _ from 'lodash'
 
 import { BannerMessage } from '@devhub/core'
-import { REHYDRATE } from 'redux-persist'
+import { REHYDRATE } from '@wora/redux';
 import { Reducer } from '../types'
 
 export interface State {
@@ -16,14 +16,10 @@ const initialState: State = {
 export const appReducer: Reducer<State> = (state = initialState, action) => {
   switch (action.type) {
     case REHYDRATE as any: {
-      const { err, payload } = action as any
-
-      const app: State = err ? state : payload && payload.app
-
       return {
-        ...app,
+        ...state,
         banners: _.uniqBy(
-          ((app && app.banners) || [])
+          ((state && state.banners) || [])
             .concat(initialState.banners)
             .map(banner => {
               if (!(banner && banner.id)) return banner

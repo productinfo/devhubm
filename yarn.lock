@@ -2331,6 +2331,21 @@
     "@webassemblyjs/wast-parser" "1.8.5"
     "@xtuc/long" "4.2.2"
 
+"@wora/cache-persist@2.0.0-rc.2", "@wora/cache-persist@^2.0.0-rc.2":
+  version "2.0.0-rc.2"
+  resolved "https://registry.yarnpkg.com/@wora/cache-persist/-/cache-persist-2.0.0-rc.2.tgz#de9264e4a44cf9440da8795c99665e763f516383"
+  integrity sha512-l+vq8HCFyeU3TEWgksPv+YqXsPX0GUhvYKXDamHCz7AMxaBCCXbDTjFsxEzWozdBVPUPgyJwup1Il4kAjohKAA==
+  dependencies:
+    idb "^4.0.0"
+
+"@wora/redux@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@wora/redux/-/redux-0.0.1.tgz#eebd8121c0244d030514938a24839a81708edc3b"
+  integrity sha512-5COCma13bldAgJ7giGI43/aqNXvZMBu/eCzHGSN3jTLEjaHVuGUiFOM4wag2NmiHK6LIIGMiv/vMXnnaUPaZ/w==
+  dependencies:
+    "@wora/cache-persist" "^2.0.0-rc.2"
+    symbol-observable "^1.2.0"
+
 "@xtuc/ieee754@^1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@xtuc/ieee754/-/ieee754-1.2.0.tgz#eef014a3145ae477a1cbc00cd1e552336dceb790"
@@ -7086,6 +7101,11 @@ icss-utils@^4.1.0:
   integrity sha512-4aFq7wvWyMHKgxsH8QQtGpvbASCf+eM3wPRLI6R+MgAnTCZ6STYsRvttLvRWK0Nfif5piF394St3HeJDaljGPA==
   dependencies:
     postcss "^7.0.14"
+
+idb@^4.0.0:
+  version "4.0.4"
+  resolved "https://registry.yarnpkg.com/idb/-/idb-4.0.4.tgz#f0c06f58bd78fe557e4de944fd6ba6a3240faa8e"
+  integrity sha512-ZYsaBSNub2yAnjvmRKudQlMIPqZQIefAOwNIPeXC+RLIeXYFc0UNQqONKNuQeBNf8oBOV5L75yJ9zFISjHVj4g==
 
 identity-obj-proxy@3.0.0:
   version "3.0.0"
@@ -12596,11 +12616,6 @@ redux-devtools-extension@2.13.8:
   resolved "https://registry.yarnpkg.com/redux-devtools-extension/-/redux-devtools-extension-2.13.8.tgz#37b982688626e5e4993ff87220c9bbb7cd2d96e1"
   integrity sha512-8qlpooP2QqPtZHQZRhx3x3OP5skEV1py/zUdMY28WNAocbafxdG2tRD1MWE7sp8obGMNYuLWanhhQ7EQvT1FBg==
 
-redux-persist@5.10.0:
-  version "5.10.0"
-  resolved "https://registry.yarnpkg.com/redux-persist/-/redux-persist-5.10.0.tgz#5d8d802c5571e55924efc1c3a9b23575283be62b"
-  integrity sha512-sSJAzNq7zka3qVHKce1hbvqf0Vf5DuTVm7dr4GtsqQVOexnrvbV47RWFiPxQ8fscnyiuWyD2O92DOxPl0tGCRg==
-
 redux-saga@1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/redux-saga/-/redux-saga-1.0.2.tgz#0599703f975438f1b2f9d2b9a965ec58f0fdfcd7"
@@ -12608,7 +12623,7 @@ redux-saga@1.0.2:
   dependencies:
     "@redux-saga/core" "^1.0.2"
 
-redux@4.0.1, "redux@>=0.10 <5", redux@^4.0.0:
+"redux@>=0.10 <5", redux@^4.0.0:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/redux/-/redux-4.0.1.tgz#436cae6cc40fbe4727689d7c8fae44808f1bfef5"
   integrity sha512-R7bAtSkk7nY6O/OYMVR9RiBI+XghjF9rlbl5806HJbQph0LJVHZrU5oaO4q70eUKiqMRqm4y07KLTlMZ2BlVmg==
