@@ -1,5 +1,8 @@
 import { InferableComponentEnhancerWithProps } from 'react-redux'
-import { Action as ReduxAction } from 'redux'
+// import { Action as ReduxAction } from 'redux' // TODO
+export interface ReduxAction<T = any> {
+  type: T
+}
 
 export interface Action<T extends string, P> extends ReduxAction<T> {
   payload: P

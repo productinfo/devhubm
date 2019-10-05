@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from 'axios'
 import * as StoreReview from 'react-native-store-review'
-import { REHYDRATE } from 'redux-persist'
+import { REHYDRATE } from '@wora/redux';
 import { all, put, select, takeLatest } from 'redux-saga/effects'
 
 import { constants, User } from '@devhub/core'

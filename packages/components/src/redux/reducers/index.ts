@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { combineReducers } from 'redux'
+import { combineReducers } from '@wora/redux'
 
 import { appReducer } from './app'
 import { authReducer } from './auth'

@@ -1,12 +1,9 @@
-import { applyMiddleware, createStore } from 'redux'
 import { composeWithDevTools } from 'redux-devtools-extension'
 import {
+  applyMiddleware,
   createMigrate,
-  PersistConfig,
-  persistReducer,
-  persistStore,
-} from 'redux-persist'
-import storage from 'redux-persist/lib/storage'
+  createStore,
+} from '@wora/redux'
 import createSagaMiddleware from 'redux-saga'
 import { registerSelectors } from 'reselect-tools'
 
@@ -22,7 +19,7 @@ if (__DEV__) {
 }
 
 export function configureStore(key = 'root') {
-  const persistConfig: PersistConfig = {
+  /*const persistConfig: PersistConfig = {
     blacklist: ['navigation'],
     key,
     migrate: createMigrate(migrations as any, { debug: __DEV__ }),
@@ -30,7 +27,7 @@ export function configureStore(key = 'root') {
     throttle: 500,
     version: 13,
   }
-  const persistedReducer = persistReducer(persistConfig, rootReducer)
+  const persistedReducer = persistReducer(persistConfig, rootReducer)*/
 
   /*
   // TODO: Fix this
@@ -49,15 +46,22 @@ export function configureStore(key = 'root') {
   const sagaMiddleware = createSagaMiddleware()
 
   const store = createStore(
-    persistedReducer,
+    rootReducer,
     composeWithDevTools(
       applyMiddleware(analyticsMiddleware, sagaMiddleware, electronMiddleware),
     ),
+    undefined,
+    {
+      key,
+      migrate: createMigrate(migrations as any, { debug: __DEV__ }),
+      version: 13,
+      multiple: true,
+      blacklist: ['navigation'],
+    }
   )
 
-  const persistor = persistStore(store)
 
   sagaMiddleware.run(rootSaga)
 
-  return { store, persistor }
+  return { store }
 }

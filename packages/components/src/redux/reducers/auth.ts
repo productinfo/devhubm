@@ -1,7 +1,7 @@
 import { User } from '@devhub/core'
 import immer from 'immer'
 import _ from 'lodash'
-import { REHYDRATE } from 'redux-persist'
+import { REHYDRATE } from '@wora/redux';
 
 import { Reducer } from '../types'
 
@@ -34,12 +34,9 @@ const initialState: State = {
 export const authReducer: Reducer<State> = (state = initialState, action) => {
   switch (action.type) {
     case REHYDRATE as any: {
-      const { err, payload } = action as any
-
-      const auth: State = err ? state : payload && payload.auth
 
       return {
-        ...auth,
+        ...state,
         ..._.pick(initialState, ['error', 'isDeletingAccount', 'isLoggingIn']),
       }
     }
