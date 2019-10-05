@@ -1,14 +1,14 @@
 {
   "name": "@devhub/web",
-  "version": "0.94.1",
+  "version": "0.96.0",
   "private": false,
   "homepage": "./",
   "scripts": {
     "build": "yarn compile && react-app-rewired build && shx rm -rf dist && mv build dist",
     "clean": "shx rm -rf dist/*",
-    "compile": "tsc",
-    "deploy": "yarn build && cd ../../ && now --local-config ./now.app.json --target production && cd -",
-    "deploy:beta": "yarn build && cd ../../ && now --local-config ./now.beta.json --target production && cd -",
+    "compile": "tsc -b --incremental",
+    "deploy": "yarn build && cd ../../ && now --local-config ./now.app.json --prod && cd -",
+    "deploy:beta": "yarn build && cd ../../ && now --local-config ./now.beta.json --prod && cd -",
     "eject": "react-app-rewired eject",
     "format": "prettier --write '{.,src/**}/*.{js,jsx,ts,tsx}'",
     "lint": "tslint -p .",
@@ -18,13 +18,14 @@
     "test": "react-app-rewired test"
   },
   "dependencies": {
-    "@devhub/components": "0.94.1",
+    "@devhub/components": "0.96.0",
     "react": "16.9.0",
     "react-app-polyfill": "1.0.1",
     "react-art": "16.9.0",
     "react-dom": "16.9.0",
     "react-native-web": "0.11.7",
     "react-scripts": "3.0.1",
+    "react-stripe-elements": "5.0.1",
     "resize-observer-polyfill": "1.5.1",
     "smoothscroll-polyfill": "0.4.3"
   },
@@ -33,8 +34,10 @@
     "@types/node": "12.6.9",
     "@types/react": "16.9.2",
     "@types/react-dom": "16.8.5",
+    "@types/react-stripe-elements": "1.3.2",
+    "@types/stripe-v3": "3.1.7",
     "babel-plugin-react-native-web": "0.11.7",
-    "now": "16.1.1",
+    "now": "16.2.0",
     "postinstall-prepare": "1.0.1",
     "prettier": "1.16.4",
     "react-app-rewired": "2.1.1",
@@ -44,7 +47,7 @@
     "tslint-config-prettier": "1.18.0",
     "tslint-react": "3.6.0",
     "typescript": "3.6.2",
-    "webpack-bundle-analyzer": "3.1.0"
+    "webpack-bundle-analyzer": "3.3.2"
   },
   "eslintConfig": {
     "extends": "react-app"

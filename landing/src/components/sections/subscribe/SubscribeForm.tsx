@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { CardElement, injectStripe } from 'react-stripe-elements'
 
-import { constants, Plan } from '@devhub/core/dist'
+import { constants, Plan } from '@brunolemos/devhub-core/dist'
 import { useAuth } from '../../../context/AuthContext'
 import { useTheme } from '../../../context/ThemeContext'
 import { formatPrice, getDefaultDevHubHeaders } from '../../../helpers'
@@ -103,6 +103,8 @@ export const SubscribeForm = injectStripe<SubscribeFormProps>(
 
                   currentPeriodStartAt
                   currentPeriodEndAt
+
+                  reason
 
                   featureFlags {
                     columnsLimit
@@ -220,7 +222,7 @@ export const SubscribeForm = injectStripe<SubscribeFormProps>(
           loading={formState.isSubmiting}
           onClick={handleSubmit}
         >
-          {`Subscribe for ${formatPrice(plan.amount, plan.currency)}/${
+          {`Unlock for ${formatPrice(plan.amount, plan.currency)}/${
             plan.interval
           }`}
         </Button>

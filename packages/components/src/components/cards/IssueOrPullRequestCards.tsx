@@ -10,6 +10,7 @@ import {
 import { useCardsKeyboard } from '../../hooks/use-cards-keyboard'
 import { DataItemT, useCardsProps } from '../../hooks/use-cards-props'
 import { useReduxState } from '../../hooks/use-redux-state'
+import { BlurView } from '../../libs/blur-view/BlurView'
 import { ErrorBoundary } from '../../libs/bugsnag'
 import { OneList, OneListProps } from '../../libs/one-list'
 import * as actions from '../../redux/actions'
@@ -35,9 +36,9 @@ export interface IssueOrPullRequestCardsProps
   errorMessage: EmptyCardsProps['errorMessage']
   fetchNextPage: (() => void) | undefined
   items: ItemT[]
-  lastFetchedAt: string | undefined
+  lastFetchedSuccessfullyAt: string | undefined
   ownerIsKnown: boolean
-  pointerEvents: ViewProps['pointerEvents']
+  pointerEvents?: ViewProps['pointerEvents']
   refresh: EmptyCardsProps['refresh']
   repoIsKnown: boolean
   swipeable: boolean
@@ -55,7 +56,7 @@ export const IssueOrPullRequestCards = React.memo(
       errorMessage,
       fetchNextPage,
       items,
-      lastFetchedAt,
+      lastFetchedSuccessfullyAt,
       ownerIsKnown,
       pointerEvents,
       refresh,
@@ -72,7 +73,7 @@ export const IssueOrPullRequestCards = React.memo(
     )
 
     const {
-      OverrideRenderComponent,
+      OverrideRender,
       data,
       footer,
       getItemSize,
@@ -87,16 +88,21 @@ export const IssueOrPullRequestCards = React.memo(
       repoIsKnown,
       refresh,
       ownerIsKnown,
-      lastFetchedAt,
+      lastFetchedSuccessfullyAt,
       items,
       fetchNextPage,
       columnIndex,
-      column,
+      column: column!,
     })
 
     useCardsKeyboard(listRef, {
-      columnId: column.id,
-      items,
+      columnId: (column && column.id)!,
+      items:
+        OverrideRender && OverrideRender.Component && OverrideRender.overlay
+          ? []
+          : items,
+      ownerIsKnown,
+      repoIsKnown,
       type: 'issue_or_pr',
       visibleItemIndexesRef,
     })
@@ -155,7 +161,7 @@ export const IssueOrPullRequestCards = React.memo(
         if (maybeInvalidFilters) {
           return (
             <EmptyCards
-              column={column}
+              columnId={column.id}
               disableLoadingIndicator
               emoji={emptyFilters ? 'desert' : 'squirrel'}
               errorButtonView={
@@ -193,7 +199,7 @@ export const IssueOrPullRequestCards = React.memo(
 
         return (
           <EmptyCards
-            column={column}
+            columnId={column.id}
             disableLoadingIndicator
             errorMessage={errorMessage}
             fetchNextPage={fetchNextPage}
@@ -210,7 +216,8 @@ export const IssueOrPullRequestCards = React.memo(
       ],
     )
 
-    if (OverrideRenderComponent) return <OverrideRenderComponent />
+    if (OverrideRender && OverrideRender.Component && !OverrideRender.overlay)
+      return <OverrideRender.Component />
 
     return (
       <View style={sharedStyles.flex}>
@@ -218,6 +225,11 @@ export const IssueOrPullRequestCards = React.memo(
           ref={listRef}
           key="issue-or-pr-cards-list"
           ListEmptyComponent={ListEmptyComponent}
+          containerStyle={
+            OverrideRender && OverrideRender.Component && OverrideRender.overlay
+              ? sharedStyles.superMuted
+              : undefined
+          }
           data={data}
           estimatedItemSize={getItemSize(data[0], 0) || 89}
           footer={footer}
@@ -228,11 +240,25 @@ export const IssueOrPullRequestCards = React.memo(
           itemSeparator={itemSeparator}
           onVisibleItemsChanged={onVisibleItemsChanged}
           overscanCount={1}
-          pointerEvents={pointerEvents}
+          pointerEvents={
+            OverrideRender && OverrideRender.Component && OverrideRender.overlay
+              ? 'none'
+              : pointerEvents
+          }
           refreshControl={refreshControl}
           renderItem={renderItem}
           safeAreaInsets={safeAreaInsets}
         />
+
+        {!!(
+          OverrideRender &&
+          OverrideRender.Component &&
+          OverrideRender.overlay
+        ) && (
+          <BlurView intensity={8} style={sharedStyles.absoluteFill}>
+            <OverrideRender.Component />
+          </BlurView>
+        )}
       </View>
     )
   },

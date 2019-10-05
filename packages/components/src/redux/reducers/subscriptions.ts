@@ -1,5 +1,6 @@
 import immer from 'immer'
 import _ from 'lodash'
+import { REHYDRATE } from 'redux-persist'
 
 import {
   ColumnSubscription,
@@ -31,6 +32,26 @@ export const subscriptionsReducer: Reducer<State> = (
   action,
 ) => {
   switch (action.type) {
+    case REHYDRATE as any: {
+      const { err, payload } = action as any
+
+      const subscriptions: State = err
+        ? state
+        : (payload && payload.subscriptions) || state
+
+      return immer(subscriptions, draft => {
+        const keys = Object.keys(draft.byId)
+        if (!(keys && keys.length)) return
+
+        keys.forEach(id => {
+          const subscription = draft.byId[id]
+          if (!(subscription && subscription.data)) return
+
+          subscription.data.loadState = 'not_loaded'
+        })
+      })
+    }
+
     case 'CLEANUP_SUBSCRIPTIONS_DATA': {
       return immer(state, draft => {
         draft.allIds = draft.allIds || []
@@ -178,7 +199,7 @@ export const subscriptionsReducer: Reducer<State> = (
         if (!subscription) return
 
         subscription.data = subscription.data || {}
-        // subscription.data.lastFetchedAt = new Date().toISOString()
+        subscription.data.lastFetchedAt = new Date().toISOString()
 
         const { page } = action.payload.params
         const prevLoadState = subscription.data.loadState
@@ -207,6 +228,7 @@ export const subscriptionsReducer: Reducer<State> = (
           subscription.data.canFetchMore = action.payload.canFetchMore
         subscription.data.errorMessage = undefined
         subscription.data.lastFetchedAt = new Date().toISOString()
+        subscription.data.lastFetchedSuccessfullyAt = new Date().toISOString()
         subscription.data.loadState = 'loaded'
 
         const prevItems = (subscription.data.items || []) as any
@@ -255,6 +277,7 @@ export const subscriptionsReducer: Reducer<State> = (
         if (!subscription) return
 
         subscription.data = subscription.data || {}
+        subscription.data.lastFetchedAt = new Date().toISOString()
         subscription.data.errorMessage = action.error && action.error.message
         if (action.error && Array.isArray((action.error as any).errors)) {
           const errors = (action.error as any).errors
@@ -268,7 +291,6 @@ export const subscriptionsReducer: Reducer<State> = (
             }: ${errors}`.trim()
           }
         }
-        subscription.data.lastFetchedAt = new Date().toISOString()
         subscription.data.loadState = 'error'
 
         if (

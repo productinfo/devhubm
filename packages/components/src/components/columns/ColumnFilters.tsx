@@ -1,15 +1,15 @@
 import _ from 'lodash'
-import React, { Fragment, useMemo, useRef, useState } from 'react'
-import { View } from 'react-native'
+import React, { Fragment, useCallback, useMemo, useRef, useState } from 'react'
+import { ScrollView, View } from 'react-native'
 
 import {
-  Column,
   columnHasAnyFilter,
   eventActions,
   eventSubjectTypes,
   filterRecordHasAnyForcedValue,
   filterRecordWithThisValueCount,
   getEventActionMetadata,
+  getFilterCountMetadata,
   getFilteredItems,
   getItemInbox,
   getItemsFilterMetadata,
@@ -31,15 +31,16 @@ import {
   notificationSubjectTypes,
   ThemeColors,
 } from '@devhub/core'
+import { useColumn } from '../../hooks/use-column'
 import { useColumnData } from '../../hooks/use-column-data'
 import { useReduxAction } from '../../hooks/use-redux-action'
+import { useReduxState } from '../../hooks/use-redux-state'
 import { Platform } from '../../libs/platform'
 import * as actions from '../../redux/actions'
+import * as selectors from '../../redux/selectors'
 import { sharedStyles } from '../../styles/shared'
-import {
-  columnHeaderItemContentSize,
-  contentPadding,
-} from '../../styles/variables'
+import { contentPadding } from '../../styles/variables'
+import { columnHeaderItemContentSize } from '../columns/ColumnHeader'
 import { Avatar } from '../common/Avatar'
 import { Button } from '../common/Button'
 import {
@@ -51,7 +52,6 @@ import {
   CounterMetadata,
   CounterMetadataProps,
 } from '../common/CounterMetadata'
-import { FullHeightScrollView } from '../common/FullHeightScrollView'
 import { Separator } from '../common/Separator'
 import { Spacer } from '../common/Spacer'
 import { ThemedText } from '../themed/ThemedText'
@@ -87,8 +87,7 @@ const notificationReasonOptions = notificationReasons
   .sort(metadataSortFn)
 
 export interface ColumnFiltersProps {
-  column: Column
-  columnIndex: number
+  columnId: string
   forceOpenAll?: boolean
   startWithFiltersExpanded?: boolean
 }
@@ -107,15 +106,25 @@ export type ColumnFilterCategory =
   | 'subject_types'
   | 'unread'
 
-const getFilteredItemsOptions: Parameters<typeof getFilteredItems>[3] = {
-  mergeSimilar: false,
-}
-
 export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
-  const { column, forceOpenAll, startWithFiltersExpanded } = props
+  const { columnId, forceOpenAll, startWithFiltersExpanded } = props
+
+  const { column } = useColumn(columnId)
+
+  const plan = useReduxState(selectors.currentUserPlanSelector)
+
+  const getFilteredItemsOptions = useMemo<
+    Parameters<typeof getFilteredItems>[3]
+  >(
+    () => ({
+      mergeSimilar: false,
+      plan,
+    }),
+    [plan],
+  )
 
   const { allItems, filteredItems } = useColumnData(
-    column.id,
+    columnId,
     getFilteredItemsOptions,
   )
 
@@ -125,12 +134,13 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
     ownerFilters,
     ownerFiltersWithRepos,
     repoFilters,
-  } = useMemo(() => getOwnerAndRepoFormattedFilter(column.filters), [
-    column.filters,
+  } = useMemo(() => getOwnerAndRepoFormattedFilter(column && column.filters), [
+    column && column.filters,
   ])
 
   const ownerOrRepoFilteredItemsMetadata = useMemo(
     () =>
+      column &&
       getItemsFilterMetadata(
         column.type,
         getFilteredItems(
@@ -145,41 +155,59 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
         {
           forceIncludeTheseOwners: allForcedOwners,
           forceIncludeTheseRepos: allForcedRepos,
+          plan,
         },
       ),
-    [column.type, allItems, column.filters, allForcedOwners, allForcedRepos],
+    [
+      column && column.type,
+      allItems,
+      column && column.filters,
+      allForcedOwners,
+      allForcedRepos,
+      plan,
+    ],
   )
 
-  const _owners = Object.keys(ownerOrRepoFilteredItemsMetadata.owners || {})
-  const _shouldShowOwnerOrRepoFilters =
+  const _owners = Object.keys(
+    (ownerOrRepoFilteredItemsMetadata &&
+      ownerOrRepoFilteredItemsMetadata.owners) ||
+      {},
+  )
+  const _shouldShowOwnerOrRepoFilters = !!(
     _owners.length >= 1 ||
     (_owners.length === 1 &&
+      ownerOrRepoFilteredItemsMetadata &&
       ownerOrRepoFilteredItemsMetadata.owners[_owners[0]].repos &&
       Object.keys(ownerOrRepoFilteredItemsMetadata.owners[_owners[0]].repos)
         .length >= 1)
+  )
 
   const involvingUsers = useMemo(
     () =>
       _.sortBy(
         Object.keys(
-          (column.filters &&
+          (column &&
+            column.filters &&
             (column.filters as IssueOrPullRequestColumnFilters).involves) ||
             {},
         ),
       ),
     [
-      column.filters &&
+      column &&
+        column.filters &&
         (column.filters as IssueOrPullRequestColumnFilters).involves,
     ],
   )
 
-  const _shouldShowInvolvesFilter =
+  const _shouldShowInvolvesFilter = !!(
+    column &&
     column.type === 'issue_or_pr' &&
     !!involvingUsers &&
     involvingUsers.length >= 1
+  )
 
   const _allColumnOptionCategories: Array<ColumnFilterCategory | false> = [
-    column.type === 'notifications' && 'inbox',
+    !!column && column.type === 'notifications' && 'inbox',
     'saved_for_later',
     'unread',
     'state',
@@ -187,9 +215,9 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
     'bot',
     _shouldShowInvolvesFilter && 'involves',
     'subject_types',
-    column.type === 'activity' && 'event_action',
-    column.type === 'notifications' && 'notification_reason',
-    column.type === 'notifications' && 'privacy',
+    !!column && column.type === 'activity' && 'event_action',
+    !!column && column.type === 'notifications' && 'notification_reason',
+    !!column && column.type === 'notifications' && 'privacy',
     _shouldShowOwnerOrRepoFilters && 'repos',
   ]
 
@@ -237,27 +265,39 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
   )
   const setColumnUnreadFilter = useReduxAction(actions.setColumnUnreadFilter)
 
-  const toggleOpenedOptionCategory = (optionCategory: ColumnFilterCategory) => {
-    setOpenedOptionCategories(set => {
-      const isOpen = set.has(optionCategory)
-      if (allowOnlyOneCategoryToBeOpenedRef.current) set.clear()
-      isOpen ? set.delete(optionCategory) : set.add(optionCategory)
+  const toggleOpenedOptionCategory = useCallback(
+    (optionCategory: ColumnFilterCategory) => {
+      setOpenedOptionCategories(_set => {
+        const set = new Set(_set)
+        const isOpen = set.has(optionCategory)
+        if (allowOnlyOneCategoryToBeOpenedRef.current) set.clear()
+        isOpen ? set.delete(optionCategory) : set.add(optionCategory)
 
-      if (set.size === 0) allowOnlyOneCategoryToBeOpenedRef.current = true
+        if (set.size === 0) allowOnlyOneCategoryToBeOpenedRef.current = true
 
-      return new Set(set)
-    })
-  }
+        return set
+      })
+    },
+    [],
+  )
 
   const allItemsMetadata = useMemo(
-    () => getItemsFilterMetadata(column.type, allItems),
-    [column.type, allItems],
+    () =>
+      getItemsFilterMetadata(column ? column.type : 'activity', allItems, {
+        plan,
+      }),
+    [column && column.type, allItems, plan],
   )
 
   const filteredItemsMetadata = useMemo(
-    () => getItemsFilterMetadata(column.type, filteredItems),
-    [column.type, filteredItems],
+    () =>
+      getItemsFilterMetadata(column ? column.type : 'activity', filteredItems, {
+        plan,
+      }),
+    [column && column.type, filteredItems, plan],
   )
+
+  if (!column) return null
 
   const inbox = getItemInbox(column.type, column.filters)
 
@@ -288,7 +328,7 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
       backgroundColor={getColumnHeaderThemeColors().normal}
       style={sharedStyles.flex}
     >
-      <FullHeightScrollView
+      <ScrollView
         alwaysBounceHorizontal={false}
         alwaysBounceVertical
         bounces
@@ -340,7 +380,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
 
             return (
               <ColumnOptionsRow
-                analyticsLabel="involves"
                 enableBackgroundHover={allowToggleCategories}
                 hasChanged={false}
                 headerItemFixedIconSize={columnHeaderItemContentSize}
@@ -398,7 +437,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                   // return (
                   //   <Checkbox
                   //     key={`involves-user-option-${user}`}
-                  //     analyticsLabel={undefined}
                   //     checked={checked}
                   //     containerStyle={
                   //       sharedColumnOptionsStyles.fullWidthCheckboxContainerWithPadding
@@ -459,7 +497,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
 
             return (
               <ColumnOptionsRow
-                analyticsLabel="saved_for_later"
                 enableBackgroundHover={allowToggleCategories}
                 hasChanged={typeof savedForLater === 'boolean'}
                 headerItemFixedIconSize={columnHeaderItemContentSize}
@@ -471,17 +508,16 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                     ? () => toggleOpenedOptionCategory('saved_for_later')
                     : undefined
                 }
-                // right={
-                //   savedForLater === true
-                //     ? 'Saved only'
-                //     : savedForLater === false
-                //     ? 'Excluded'
-                //     : 'Included'
-                // }
-                title="Saved for later"
+                right={
+                  savedForLater === true
+                    ? 'Only'
+                    : savedForLater === false
+                    ? 'Excluded'
+                    : ''
+                }
+                title="Bookmarked"
               >
                 <Checkbox
-                  analyticsLabel="save_for_later"
                   checked={
                     typeof savedForLater === 'boolean' ? savedForLater : null
                   }
@@ -493,7 +529,7 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                     sharedColumnOptionsStyles.checkboxSquareContainer
                   }
                   enableIndeterminateState
-                  label="Saved for later"
+                  label="Bookmarked"
                   onChange={checked => {
                     setColumnSavedFilter({
                       columnId: column.id,
@@ -523,7 +559,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
 
             return (
               <ColumnOptionsRow
-                analyticsLabel="read_status"
                 enableBackgroundHover={allowToggleCategories}
                 hasChanged={
                   !!(
@@ -543,17 +578,16 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                     ? () => toggleOpenedOptionCategory('unread')
                     : undefined
                 }
-                // right={
-                //   isReadChecked && !isUnreadChecked
-                //     ? 'Read'
-                //     : !isReadChecked && isUnreadChecked
-                //     ? 'Unread'
-                //     : 'All'
-                // }
+                right={
+                  isReadChecked && !isUnreadChecked
+                    ? 'Read'
+                    : !isReadChecked && isUnreadChecked
+                    ? 'Unread'
+                    : ''
+                }
                 title="Read status"
               >
                 <Checkbox
-                  analyticsLabel="read"
                   checked={
                     isReadChecked && isUnreadChecked ? null : isReadChecked
                   }
@@ -585,7 +619,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                 />
 
                 <Checkbox
-                  analyticsLabel="unread"
                   checked={
                     isReadChecked && isUnreadChecked ? null : isUnreadChecked
                   }
@@ -633,11 +666,11 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
               defaultBooleanValue,
             )
             const hasForcedValue = filterRecordHasAnyForcedValue(filters)
-            // const countMetadata = getFilterCountMetadata(
-            //   filters,
-            //   stateTypeOptions.length,
-            //   defaultBooleanValue,
-            // )
+            const countMetadata = getFilterCountMetadata(
+              filters,
+              stateTypeOptions.length,
+              defaultBooleanValue,
+            )
 
             const supportsOnlyOne = true // column.type === 'issue_or_pr'
 
@@ -653,7 +686,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
 
             return (
               <ColumnOptionsRow
-                analyticsLabel="state_options_row"
                 enableBackgroundHover={allowToggleCategories}
                 hasChanged={filterRecordHasAnyForcedValue(filters)}
                 headerItemFixedIconSize={columnHeaderItemContentSize}
@@ -682,11 +714,11 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                     : undefined
                 }
                 title="State"
-                // right={
-                //   filterRecordHasAnyForcedValue(filters)
-                //     ? `${countMetadata.checked}/${countMetadata.total}`
-                //     : 'All'
-                // }
+                right={
+                  filterRecordHasAnyForcedValue(filters)
+                    ? `${countMetadata.checked}/${countMetadata.total}`
+                    : ''
+                }
               >
                 {stateTypeOptions.map(item => {
                   const checked =
@@ -702,7 +734,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                   return (
                     <Checkbox
                       key={`state-type-option-${item.state}`}
-                      analyticsLabel={undefined}
                       checked={checked}
                       checkedBackgroundThemeColor={item.color}
                       circle={supportsOnlyOne}
@@ -763,7 +794,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
 
             return (
               <ColumnOptionsRow
-                analyticsLabel="draft_options_row"
                 enableBackgroundHover={allowToggleCategories}
                 hasChanged={typeof draft === 'boolean'}
                 headerItemFixedIconSize={columnHeaderItemContentSize}
@@ -776,17 +806,12 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                     : undefined
                 }
                 title="Draft"
-                // right={
-                //   draft === true
-                //     ? 'Draft only'
-                //     : draft === false
-                //     ? 'Excluded'
-                //     : 'Included'
-                // }
+                right={
+                  draft === true ? 'Only' : draft === false ? 'Excluded' : ''
+                }
               >
                 <Checkbox
                   key="draft-type-option"
-                  analyticsLabel={undefined}
                   checked={typeof draft === 'boolean' ? draft : null}
                   checkedBackgroundThemeColor="gray"
                   containerStyle={
@@ -828,7 +853,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
 
             return (
               <ColumnOptionsRow
-                analyticsLabel="bot_options_row"
                 enableBackgroundHover={allowToggleCategories}
                 hasChanged={typeof bot === 'boolean'}
                 headerItemFixedIconSize={columnHeaderItemContentSize}
@@ -841,17 +865,10 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                     : undefined
                 }
                 title="Bots"
-                // right={
-                //   bot === true
-                //     ? 'Bots only'
-                //     : bot === false
-                //     ? 'Excluded'
-                //     : 'Included'
-                // }
+                right={bot === true ? 'Only' : bot === false ? 'Excluded' : ''}
               >
                 <Checkbox
                   key="bot-type-option"
-                  analyticsLabel={undefined}
                   checked={typeof bot === 'boolean' ? bot : null}
                   containerStyle={
                     sharedColumnOptionsStyles.fullWidthCheckboxContainerWithPadding
@@ -911,11 +928,11 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
               defaultBooleanValue,
             )
             const hasForcedValue = filterRecordHasAnyForcedValue(filters)
-            // const countMetadata = getFilterCountMetadata(
-            //   filters,
-            //   subjectTypeOptions.length,
-            //   defaultBooleanValue,
-            // )
+            const countMetadata = getFilterCountMetadata(
+              filters,
+              subjectTypeOptions.length,
+              defaultBooleanValue,
+            )
 
             // const filteredItemsMetadata = getItemsFilterMetadata(
             //   column.type,
@@ -929,7 +946,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
 
             return (
               <ColumnOptionsRow
-                analyticsLabel="subject_types"
                 enableBackgroundHover={allowToggleCategories}
                 hasChanged={filterRecordHasAnyForcedValue(filters)}
                 headerItemFixedIconSize={columnHeaderItemContentSize}
@@ -942,11 +958,11 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                     : undefined
                 }
                 title="Subject type"
-                // right={
-                //   filterRecordHasAnyForcedValue(filters)
-                //     ? `${countMetadata.checked}/${countMetadata.total}`
-                //     : 'All'
-                // }
+                right={
+                  filterRecordHasAnyForcedValue(filters)
+                    ? `${countMetadata.checked}/${countMetadata.total}`
+                    : ''
+                }
               >
                 {subjectTypeOptions.map(item => {
                   const checked =
@@ -967,7 +983,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                       key={`notification-subject-type-option-${
                         item.subjectType
                       }`}
-                      analyticsLabel={undefined}
                       checked={checked}
                       checkedBackgroundThemeColor={item.color}
                       containerStyle={
@@ -1024,11 +1039,11 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
               defaultBooleanValue,
             )
             const hasForcedValue = filterRecordHasAnyForcedValue(filters)
-            // const countMetadata = getFilterCountMetadata(
-            //   filters,
-            //   notificationReasonOptions.length,
-            //   defaultBooleanValue,
-            // )
+            const countMetadata = getFilterCountMetadata(
+              filters,
+              notificationReasonOptions.length,
+              defaultBooleanValue,
+            )
 
             // const filteredItemsMetadata = getItemsFilterMetadata(
             //   column.type,
@@ -1048,7 +1063,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
 
             return (
               <ColumnOptionsRow
-                analyticsLabel="notification_reason"
                 enableBackgroundHover={allowToggleCategories}
                 hasChanged={filterRecordHasAnyForcedValue(filters)}
                 headerItemFixedIconSize={columnHeaderItemContentSize}
@@ -1061,11 +1075,11 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                     : undefined
                 }
                 title="Subscription reason"
-                // right={
-                //   filterRecordHasAnyForcedValue(filters)
-                //     ? `${countMetadata.checked}/${countMetadata.total}`
-                //     : 'All'
-                // }
+                right={
+                  filterRecordHasAnyForcedValue(filters)
+                    ? `${countMetadata.checked}/${countMetadata.total}`
+                    : ''
+                }
               >
                 {notificationReasonOptions.map(item => {
                   const checked =
@@ -1079,7 +1093,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                   return (
                     <Checkbox
                       key={`notification-reason-option-${item.reason}`}
-                      analyticsLabel={undefined}
                       checked={checked}
                       checkedBackgroundThemeColor={item.color}
                       containerStyle={
@@ -1139,11 +1152,11 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
               defaultBooleanValue,
             )
             const hasForcedValue = filterRecordHasAnyForcedValue(filters)
-            // const countMetadata = getFilterCountMetadata(
-            //   filters,
-            //   eventActionOptions.length,
-            //   defaultBooleanValue,
-            // )
+            const countMetadata = getFilterCountMetadata(
+              filters,
+              eventActionOptions.length,
+              defaultBooleanValue,
+            )
 
             // const filteredItemsMetadata = getItemsFilterMetadata(
             //   column.type,
@@ -1163,7 +1176,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
 
             return (
               <ColumnOptionsRow
-                analyticsLabel="event_action"
                 enableBackgroundHover={allowToggleCategories}
                 hasChanged={filterRecordHasAnyForcedValue(filters)}
                 headerItemFixedIconSize={columnHeaderItemContentSize}
@@ -1176,11 +1188,11 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                     : undefined
                 }
                 title="Event action"
-                // right={
-                //   filterRecordHasAnyForcedValue(filters)
-                //     ? `${countMetadata.checked}/${countMetadata.total}`
-                //     : 'All'
-                // }
+                right={
+                  filterRecordHasAnyForcedValue(filters)
+                    ? `${countMetadata.checked}/${countMetadata.total}`
+                    : ''
+                }
               >
                 {eventActionOptions.map(item => {
                   const checked =
@@ -1196,7 +1208,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                   return (
                     <Checkbox
                       key={`event-type-option-${item.action}`}
-                      analyticsLabel={undefined}
                       checked={checked}
                       containerStyle={
                         sharedColumnOptionsStyles.fullWidthCheckboxContainerWithPadding
@@ -1257,7 +1268,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
 
             return (
               <ColumnOptionsRow
-                analyticsLabel="privacy"
                 enableBackgroundHover={allowToggleCategories}
                 hasChanged={
                   !!column.filters &&
@@ -1276,17 +1286,16 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                     ? () => toggleOpenedOptionCategory('privacy')
                     : undefined
                 }
-                // right={
-                //   isPrivateChecked && !isPublicChecked
-                //     ? 'Private'
-                //     : !isPrivateChecked && isPublicChecked
-                //     ? 'Public'
-                //     : 'All'
-                // }
+                right={
+                  isPrivateChecked && !isPublicChecked
+                    ? 'Private'
+                    : !isPrivateChecked && isPublicChecked
+                    ? 'Public'
+                    : ''
+                }
                 title="Privacy"
               >
                 <Checkbox
-                  analyticsLabel="public"
                   checked={
                     isPublicChecked && isPrivateChecked ? null : isPublicChecked
                   }
@@ -1316,7 +1325,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                 />
 
                 <Checkbox
-                  analyticsLabel="private"
                   checked={
                     isPublicChecked && isPrivateChecked
                       ? null
@@ -1369,18 +1377,21 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
             )
 
             const owners = _.sortBy(
-              Object.keys(ownerOrRepoFilteredItemsMetadata.owners),
+              Object.keys(
+                (ownerOrRepoFilteredItemsMetadata &&
+                  ownerOrRepoFilteredItemsMetadata.owners) ||
+                  {},
+              ),
             )
 
-            // const ownerCountMetadata = getFilterCountMetadata(
-            //   ownerFilters,
-            //   owners.length,
-            //   defaultBooleanValue,
-            // )
+            const ownerCountMetadata = getFilterCountMetadata(
+              ownerFilters,
+              owners.length,
+              defaultBooleanValue,
+            )
 
             return (
               <ColumnOptionsRow
-                analyticsLabel="repositories"
                 enableBackgroundHover={allowToggleCategories}
                 hasChanged={
                   // column.type !== 'issue_or_pr' &&
@@ -1396,14 +1407,17 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                     : undefined
                 }
                 title="Repositories"
-                // right={
-                //   ownerFilterHasForcedValue || repoFilterHasForcedValue
-                //     ? `${ownerCountMetadata.checked}/${ownerCountMetadata.total}`
-                //     : 'All'
-                // }
+                right={
+                  ownerFilterHasForcedValue || repoFilterHasForcedValue
+                    ? `${ownerCountMetadata.checked}/${
+                        ownerCountMetadata.total
+                      }`
+                    : ''
+                }
               >
                 {owners.map(owner => {
                   const ownerItem =
+                    ownerOrRepoFilteredItemsMetadata &&
                     ownerOrRepoFilteredItemsMetadata.owners[owner]
                   if (!ownerItem) return null
 
@@ -1437,7 +1451,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                     <Fragment key={`owner-option-fragment-${owner}`}>
                       <Checkbox
                         key={`owner-option-${owner}`}
-                        analyticsLabel={undefined}
                         checked={ownerChecked}
                         containerStyle={
                           sharedColumnOptionsStyles.fullWidthCheckboxContainerWithPadding
@@ -1506,7 +1519,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
                         return (
                           <Checkbox
                             key={`owner-repo-option-${owner}/${repo}`}
-                            analyticsLabel={undefined}
                             checked={disabled ? false : repoChecked}
                             containerStyle={[
                               sharedColumnOptionsStyles.fullWidthCheckboxContainerWithPadding,
@@ -1558,11 +1570,11 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
               </ColumnOptionsRow>
             )
           })()}
-      </FullHeightScrollView>
+      </ScrollView>
 
       <Separator horizontal />
 
-      <Spacer flex={1} minHeight={contentPadding / 2} />
+      <Spacer height={contentPadding / 2} />
 
       <View
         style={{
@@ -1571,7 +1583,6 @@ export const ColumnFilters = React.memo((props: ColumnFiltersProps) => {
         }}
       >
         <Button
-          analyticsLabel="clear_column_filters"
           children="Reset filters"
           disabled={
             !columnHasAnyFilter(column.type, {

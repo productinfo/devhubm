@@ -1,7 +1,7 @@
 import React from 'react'
 import { Image, View } from 'react-native'
 
-import { Column, EnhancedLoadState } from '@devhub/core'
+import { EnhancedLoadState } from '@devhub/core'
 import { useColumnLoadingState } from '../../hooks/use-column-loading-state'
 import { sharedStyles } from '../../styles/shared'
 import { contentPadding } from '../../styles/variables'
@@ -11,8 +11,8 @@ import {
 } from '../../utils/helpers/github/emojis'
 import { Button, defaultButtonSize } from '../common/Button'
 import { fabSize } from '../common/FAB'
+import { fabSpacing } from '../common/FABRenderer'
 import { Spacer } from '../common/Spacer'
-import { fabSpacing } from '../layout/FABRenderer'
 import { ThemedActivityIndicator } from '../themed/ThemedActivityIndicator'
 import { ThemedText } from '../themed/ThemedText'
 import {
@@ -54,7 +54,7 @@ export const defaultCardFooterHeight =
 export interface EmptyCardsProps {
   clearEmoji?: GitHubEmoji | null
   clearMessage?: string
-  column: Column
+  columnId: string
   disableLoadingIndicator?: boolean
   emoji?: GitHubEmoji | null
   errorButtonView?: GenericMessageWithButtonViewProps['buttonView']
@@ -69,7 +69,7 @@ export const EmptyCards = React.memo((props: EmptyCardsProps) => {
   const {
     clearEmoji = randomEmoji,
     clearMessage = randomClearMessage,
-    column,
+    columnId,
     disableLoadingIndicator,
     emoji = 'warning',
     errorButtonView,
@@ -80,7 +80,7 @@ export const EmptyCards = React.memo((props: EmptyCardsProps) => {
     refresh,
   } = props
 
-  const _loadState = useColumnLoadingState(column.id)
+  const _loadState = useColumnLoadingState(columnId)
   const loadState = _loadStateProp || _loadState
 
   const clearEmojiURL = clearEmoji ? getEmojiImageURL(clearEmoji) : undefined
@@ -127,6 +127,7 @@ export const EmptyCards = React.memo((props: EmptyCardsProps) => {
             padding: contentPadding,
           },
         ]}
+        pointerEvents="box-none"
       >
         {!!clearMessage && (
           <ThemedText
@@ -158,7 +159,10 @@ export const EmptyCards = React.memo((props: EmptyCardsProps) => {
   }
 
   return (
-    <View style={[sharedStyles.flex, sharedStyles.center]}>
+    <View
+      style={[sharedStyles.flex, sharedStyles.center]}
+      pointerEvents="box-none"
+    >
       {renderContent()}
     </View>
   )

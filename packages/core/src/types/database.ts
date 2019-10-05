@@ -1,11 +1,6 @@
 import { PlanID } from '../utils'
 import { Column, ColumnSubscription } from './devhub'
-import {
-  GitHubTokenDetails,
-  GraphQLGitHubUser,
-  Installation,
-  LoginActivity,
-} from './graphql'
+import { GitHubTokenDetails, GraphQLGitHubUser, Installation } from './graphql'
 import { StripeSubscription } from './stripe'
 
 export interface DatabaseUserPlan {
@@ -37,6 +32,9 @@ export interface DatabaseUserPlan {
   currentPeriodStartAt: string | undefined
   currentPeriodEndAt: string | undefined
 
+  reason?: string | undefined
+  userPlansToKeepUsing?: boolean | null | undefined
+
   createdAt: string
   updatedAt: string
 }
@@ -61,8 +59,8 @@ export interface DatabaseUser {
   }
   createdAt: string
   updatedAt: string
-  loginActivity?: LoginActivity[]
   lastLoginAt: string
+  loginCount: number
   plan: DatabaseUserPlan
   planHistory: DatabaseUserPlan[]
   stripe?:

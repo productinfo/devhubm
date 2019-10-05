@@ -15,6 +15,7 @@ let updateInfo: {
   date: number
   progress?: number
   lastManuallyCheckedAt?: number
+  version?: string
 } = {
   state: 'not-checked',
   date: Date.now(),
@@ -36,49 +37,45 @@ export function getAutoUpdater() {
   return autoUpdater
 }
 
+let shouldNotify = false
 export async function checkForUpdatesAndNotify() {
   try {
-    const result = await autoUpdater.checkForUpdates()
-    if (!(result && result.downloadPromise)) return result
-
-    try {
-      await result.downloadPromise
-
-      const version =
-        result.updateInfo.version && result.updateInfo.version.startsWith('v')
-          ? result.updateInfo.version.slice(1)
-          : result.updateInfo.version
-
-      const notification = new Notification({
-        title: '🚀 New version available',
-        body: `${app.getName()} v${version} has been downloaded. Tap to install.`,
-      })
-
-      notification.addListener('click', () => {
-        autoUpdater.autoInstallOnAppQuit = true
-        app.relaunch()
-        app.quit()
-      })
-
-      notification.show()
-    } catch (error) {
-      console.error(error)
-    }
-
-    return result
+    await autoUpdater.checkForUpdates()
+    shouldNotify = true
   } catch (error) {
     console.error(error)
-    return null
   }
 }
 
+function notify() {
+  const version =
+    updateInfo.version && updateInfo.version.startsWith('v')
+      ? updateInfo.version.slice(1)
+      : updateInfo.version
+
+  const notification = new Notification({
+    title: version
+      ? `🚀 ${app.getName()} v${version} is now available`
+      : '🚀 New version available',
+    body: 'Restart the app to update it.',
+  })
+
+  notification.on('click', e => {
+    autoUpdater.quitAndInstall()
+  })
+
+  notification.show()
+}
+
 export function register() {
-  autoUpdater.on('error', () => {
+  autoUpdater.removeAllListeners('error')
+  autoUpdater.addListener('error', () => {
     updateInfo = { ...updateInfo, state: 'error', date: Date.now() }
     menu.updateMenu()
   })
 
-  autoUpdater.on('checking-for-update', () => {
+  autoUpdater.removeAllListeners('checking-for-update')
+  autoUpdater.addListener('checking-for-update', () => {
     updateInfo = {
       ...updateInfo,
       state: 'checking-for-update',
@@ -87,7 +84,8 @@ export function register() {
     menu.updateMenu()
   })
 
-  autoUpdater.on('update-not-available', () => {
+  autoUpdater.removeAllListeners('update-not-available')
+  autoUpdater.addListener('update-not-available', () => {
     const fromManualCheck =
       updateInfo.lastManuallyCheckedAt &&
       Date.now() - updateInfo.lastManuallyCheckedAt < 10000
@@ -106,12 +104,14 @@ export function register() {
     }
   })
 
-  autoUpdater.on('update-available', () => {
+  autoUpdater.removeAllListeners('update-available')
+  autoUpdater.addListener('update-available', () => {
     updateInfo = { ...updateInfo, state: 'update-available', date: Date.now() }
     menu.updateMenu()
   })
 
-  autoUpdater.on('download-progress', e => {
+  autoUpdater.removeAllListeners('download-progress')
+  autoUpdater.addListener('download-progress', e => {
     updateInfo = {
       ...updateInfo,
       state: 'downloading',
@@ -121,8 +121,16 @@ export function register() {
     menu.updateMenu()
   })
 
-  autoUpdater.on('update-downloaded', () => {
-    updateInfo = { ...updateInfo, state: 'update-downloaded', date: Date.now() }
+  autoUpdater.removeAllListeners('update-downloaded')
+  autoUpdater.addListener('update-downloaded', info => {
+    updateInfo = {
+      ...updateInfo,
+      state: 'update-downloaded',
+      date: Date.now(),
+      version: info && info.version,
+    }
     menu.updateMenu()
+
+    if (shouldNotify) notify()
   })
 }

@@ -23,20 +23,13 @@ function setupBrowserExtensions() {
 
 function init() {
   app.setName('DevHub')
+  // app.commandLine.appendSwitch('disable-renderer-backgrounding')
 
   const openAtLoginChangeCount = config.store.get(
     'openAtLoginChangeCount',
   ) as number
   if (!(openAtLoginChangeCount >= 1)) {
-    app.setLoginItemSettings({
-      openAtLogin: true,
-      openAsHidden: true,
-    })
-
-    config.store.set(
-      'openAtLoginChangeCount',
-      (openAtLoginChangeCount || 0) + 1,
-    )
+    ipc.emit('update-settings', { settings: 'openAtLogin', value: true })
   }
 
   const gotTheLock = app.requestSingleInstanceLock()
@@ -45,7 +38,7 @@ function init() {
     return
   }
 
-  app.on('second-instance', (event, argv, _workingDirectory) => {
+  app.addListener('second-instance', (event, argv, _workingDirectory) => {
     const mainWindow = window.getMainWindow()
     if (!mainWindow) return
 
@@ -54,7 +47,7 @@ function init() {
     app.emit('open-url', event, argv.pop() || '')
   })
 
-  app.on('ready', () => {
+  app.addListener('ready', () => {
     config.store.set(
       'launchCount',
       (config.store.get('launchCount', 0) as number) + 1,
@@ -90,18 +83,30 @@ function init() {
     }
   })
 
-  app.on('window-all-closed', () => {
+  app.addListener('window-all-closed', async () => {
+    if (updater.getUpdateInfo().state === 'update-downloaded') {
+      try {
+        const mainWindow = window.getMainWindow()
+        if (mainWindow) await mainWindow.webContents.session.clearCache()
+      } catch (error) {
+        console.error(error)
+      }
+      app.quit()
+      return
+    }
+
     if (process.platform !== 'darwin') {
       app.quit()
     }
   })
 
-  app.on('activate', () => {
+  app.addListener('activate', () => {
     window.updateOrRecreateWindow()
   })
 
-  app.on('web-contents-created', (_event, webContents) => {
-    webContents.on(
+  app.addListener('web-contents-created', (_event, webContents) => {
+    webContents.removeAllListeners('new-window')
+    webContents.addListener(
       'new-window',
       (event, uri, _frameName, _disposition, _options) => {
         if (
@@ -116,7 +121,7 @@ function init() {
     )
   })
 
-  app.on('open-url', (_event, uri) => {
+  app.addListener('open-url', (_event, uri) => {
     const mainWindow = window.getMainWindow()
     if (!mainWindow) return
 

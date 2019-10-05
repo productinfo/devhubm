@@ -12,12 +12,12 @@ import { findNode } from '../../utils/helpers/shared'
 export interface TouchableProps
   extends TouchableWithoutFeedbackProps,
     TouchableOpacityProps,
-    TouchableHighlightProps {
+    TouchableHighlightProps,
+    TouchableWithoutFeedbackProps {
   TouchableComponent: any
   analyticsAction?: 'press' | 'toggle' | string | undefined
   analyticsCategory?: 'button' | 'checkbox' | 'link' | string | undefined
   analyticsLabel?: string | undefined
-  analyticsPayload?: Record<string, string | number | undefined> | undefined
   analyticsValue?: number | undefined
   children?: React.ReactNode
   selectable?: boolean
@@ -63,18 +63,17 @@ export const Touchable = React.forwardRef(
       if (!tooltip && node.removeAttribute) node.removeAttribute('title')
     }, [touchableRef.current, tooltip])
 
-    const onPress: typeof _onPress =
-      analyticsAction || analyticsCategory || analyticsLabel || analyticsValue
-        ? e => {
-            analytics.trackEvent(
-              analyticsCategory || 'button',
-              analyticsAction || 'press',
-              analyticsLabel,
-              analyticsValue,
-            )
-            if (_onPress) _onPress(e)
-          }
-        : _onPress
+    const onPress: typeof _onPress = analyticsLabel
+      ? e => {
+          analytics.trackEvent(
+            analyticsCategory || 'button',
+            analyticsAction || 'press',
+            analyticsLabel,
+            analyticsValue,
+          )
+          if (_onPress) _onPress(e)
+        }
+      : _onPress
 
     const onLongPress: typeof _onLongPress =
       _onLongPress ||
@@ -94,9 +93,9 @@ export const Touchable = React.forwardRef(
         onLongPress={onLongPress}
         onPress={onPress}
         style={[
-          props.style,
           props.disabled && { opacity: 0.5 },
           selectable === true && ({ userSelect: undefined } as any),
+          props.style,
         ]}
       />
     )

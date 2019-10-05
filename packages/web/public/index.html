@@ -11,20 +11,20 @@
   <!-- Google / Search Engine Tags -->
   <meta itemprop="name" content="GitHub Management Tool">
   <meta itemprop="description" content="Take back control of your GitHub workflow. Manage notifications, apply filters, save custom searches and don't miss anything important.">
-  <meta itemprop="image" content="https://user-images.githubusercontent.com/619186/63945240-59d40000-ca49-11e9-98c1-353225f8dcf6.jpg">
+  <meta itemprop="image" content="https://devhubapp.com/static/screenshots/devhub-desktop-zoomed-dark.jpg">
 
   <!-- Facebook Meta Tags -->
   <meta property="og:url" content="https://devhubapp.com">
   <meta property="og:type" content="website">
   <meta property="og:title" content="GitHub Management Tool">
   <meta property="og:description" content="Take back control of your GitHub workflow. Manage notifications, apply filters, save custom searches and don't miss anything important.">
-  <meta property="og:image" content="https://user-images.githubusercontent.com/619186/63945240-59d40000-ca49-11e9-98c1-353225f8dcf6.jpg">
+  <meta property="og:image" content="https://devhubapp.com/static/screenshots/devhub-desktop-zoomed-dark.jpg">
 
   <!-- Twitter Meta Tags -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="GitHub Management Tool">
   <meta name="twitter:description" content="Take back control of your GitHub workflow. Manage notifications, apply filters, save custom searches and don't miss anything important.">
-  <meta name="twitter:image" content="https://user-images.githubusercontent.com/619186/63945240-59d40000-ca49-11e9-98c1-353225f8dcf6.jpg">
+  <meta name="twitter:image" content="https://devhubapp.com/static/screenshots/devhub-desktop-zoomed-dark.jpg">
   <meta name="twitter:image:alt" content="Screenshot of the DevHub web app, showing 4 columns with GitHub activities on them.">
   <meta name="twitter:creator" content="@brunolemos">
   <meta name="twitter:site" content="@brunolemos">
@@ -91,19 +91,12 @@
     }
   </script> -->
 
-  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-52350759-2"></script>
   <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-
-    if ((window.location.search || '').includes('producthunt')) {
-      gtag('event', 'donthuntme')
-    }
+  window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+  // see file: packages/components/src/libs/analytics/index.web.ts
   </script>
+  <script async src='https://www.google-analytics.com/analytics.js'></script>
 
-  <script async defer src="%PUBLIC_URL%/static/js/donthuntme.js"></script>
-
+  <script async src="%PUBLIC_URL%/static/js/donthuntme.js"></script>
 </body>
-
 </html>

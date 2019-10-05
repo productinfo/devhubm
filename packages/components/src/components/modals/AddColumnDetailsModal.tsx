@@ -35,12 +35,12 @@ import * as actions from '../../redux/actions'
 import * as selectors from '../../redux/selectors'
 import { sharedStyles } from '../../styles/shared'
 import {
-  columnHeaderItemContentSize,
   contentPadding,
   smallerTextSize,
   smallTextSize,
 } from '../../styles/variables'
 import { EMPTY_ARRAY } from '../../utils/constants'
+import { columnHeaderItemContentSize } from '../columns/ColumnHeader'
 import { ColumnOptionsInboxContent } from '../columns/ColumnOptionsInbox'
 import { ModalColumn } from '../columns/ModalColumn'
 import { sharedColumnOptionsStyles } from '../columns/options/shared'
@@ -415,7 +415,6 @@ export const AddColumnDetailsModal = React.memo(
       return (
         <View key={`add-column-details-form-item-${formItemOption}`}>
           <Checkbox
-            analyticsLabel={`add_column_details_${formItemOption}`}
             checked={formikProps.values[formItemOption]}
             containerStyle={
               sharedColumnOptionsStyles.fullWidthCheckboxContainer
@@ -668,7 +667,6 @@ export const AddColumnDetailsModal = React.memo(
 
     return (
       <ModalColumn
-        iconName="plus"
         name="ADD_COLUMN_DETAILS"
         showBackButton={showBackButton}
         title="Add Column"

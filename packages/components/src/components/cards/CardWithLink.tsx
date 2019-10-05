@@ -1,3 +1,4 @@
+import { Column, EnhancedItem } from '@devhub/core'
 import React, { useCallback, useMemo, useRef } from 'react'
 import {
   StyleSheet,
@@ -7,12 +8,13 @@ import {
 } from 'react-native'
 import { useDispatch } from 'react-redux'
 
-import { Column, EnhancedItem } from '@devhub/core'
 import { useHover } from '../../hooks/use-hover'
 import { useIsItemFocused } from '../../hooks/use-is-item-focused'
+import { useReduxState } from '../../hooks/use-redux-state'
 import { emitter } from '../../libs/emitter'
 import { Platform } from '../../libs/platform'
 import * as actions from '../../redux/actions'
+import * as selectors from '../../redux/selectors'
 import { sharedStyles } from '../../styles/shared'
 import { tryFocus } from '../../utils/helpers/shared'
 import { getCardBackgroundThemeColor } from '../columns/ColumnRenderer'
@@ -52,11 +54,14 @@ export const CardWithLink = React.memo(
 
     const dispatch = useDispatch()
 
+    const plan = useReduxState(selectors.currentUserPlanSelector)
+
     const { CardComponent, cardProps } = useMemo(() => {
       const _cardProps =
         cachedCardProps ||
         getCardPropsForItem(type, item, {
           ownerIsKnown,
+          plan,
           repoIsKnown,
         })
 
@@ -66,7 +71,7 @@ export const CardWithLink = React.memo(
           <BaseCard key={`${type}-base-card-${item.id}`} {..._cardProps} />
         ),
       }
-    }, [cachedCardProps, item, ownerIsKnown, repoIsKnown])
+    }, [cachedCardProps, item, ownerIsKnown, plan, repoIsKnown])
 
     const isReadRef = useRef(cardProps.isRead)
     isReadRef.current = cardProps.isRead
@@ -75,14 +80,14 @@ export const CardWithLink = React.memo(
       isHoveredRef.current = false
 
       dispatch(
-        actions.markItemsAsReadOrUnread({
-          type,
-          itemIds: [item.id],
-          localOnly: true,
-          unread: false,
+        actions.openItem({
+          columnType: type,
+          columnId,
+          itemId: item.id,
+          link: undefined,
         }),
       )
-    }, [])
+    }, [type, columnId, item.id, cardProps.link])
 
     const updateStyles = useCallback(() => {
       if (ref.current) {
@@ -117,17 +122,12 @@ export const CardWithLink = React.memo(
         isFocusedRef.current = value
 
         if (Platform.OS === 'web' && value && changed && !disableDomFocus) {
-          const node = tryFocus(ref.current)
-
-          // Workaround to fix onPress not being called when pressing the Enter key
-          // I think react-native-web is removing the onClick from links
-          // @see https://github.com/necolas/react-native-web/blob/36dacb2052efdab2a28655773dc76934157d9134/packages/react-native-web/src/exports/createElement/index.js#L69-L79
-          if (node) node.onclick = onPress
+          tryFocus(ref.current)
         }
 
         updateStyles()
       },
-      [],
+      [columnId],
     )
 
     useIsItemFocused(columnId, item.id, handleFocusChange)
@@ -173,6 +173,22 @@ export const CardWithLink = React.memo(
         enableForegroundHover={false}
         href={cardProps.link}
         onPress={onPress}
+        onLongPress={
+          isInsideSwipeable
+            ? undefined
+            : e => {
+                if (!Platform.supportsTouch) return
+
+                e.preventDefault()
+
+                dispatch(
+                  actions.saveItemsForLater({
+                    itemIds: [item.id],
+                    save: !item.saved,
+                  }),
+                )
+              }
+        }
         openOnNewTab
         style={sharedStyles.relative}
         onFocus={() => {
@@ -180,10 +196,12 @@ export const CardWithLink = React.memo(
 
           handleFocusChange(true, true)
 
-          emitter.emit('FOCUS_ON_COLUMN_ITEM', {
-            columnId,
-            itemId: item.id,
-          })
+          if (!Platform.supportsTouch) {
+            emitter.emit('FOCUS_ON_COLUMN_ITEM', {
+              columnId,
+              itemId: item.id,
+            })
+          }
         }}
         onBlur={() => {
           handleFocusChange(false, true)
@@ -219,6 +237,7 @@ const GestureHandlerCardTouchable = React.forwardRef<
   return (
     <View ref={ref} style={props.style}>
       <GestureHandlerTouchableOpacity
+        accessible={false}
         activeOpacity={1}
         {...props}
         style={StyleSheet.flatten([
@@ -235,6 +254,7 @@ const NormalCardTouchable = React.forwardRef<View, TouchableOpacityProps>(
     return (
       <View ref={ref} style={props.style}>
         <TouchableOpacity
+          accessible={false}
           activeOpacity={Platform.supportsTouch ? 1 : undefined}
           {...props}
           style={[props.style, { backgroundColor: 'transparent' }]}

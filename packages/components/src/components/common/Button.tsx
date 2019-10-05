@@ -5,13 +5,14 @@ import { ThemeColors } from '@devhub/core'
 import { useHover } from '../../hooks/use-hover'
 import { Platform } from '../../libs/platform'
 import { sharedStyles } from '../../styles/shared'
+import { normalTextSize, radius } from '../../styles/variables'
 import { getTheme } from '../context/ThemeContext'
 import { getThemeColorOrItself } from '../themed/helpers'
 import {
   ThemedActivityIndicator,
   ThemedActivityIndicatorProps,
 } from '../themed/ThemedActivityIndicator'
-import { ThemedText } from '../themed/ThemedText'
+import { ThemedText, ThemedTextProps } from '../themed/ThemedText'
 import {
   ThemedTouchableHighlight,
   ThemedTouchableHighlightProps,
@@ -24,8 +25,9 @@ export interface ButtonProps extends ThemedTouchableHighlightProps {
   loading?: boolean
   loadingIndicatorStyle?: ThemedActivityIndicatorProps['style']
   round?: boolean
-  size?: number
-  type?: 'primary' | 'neutral' | 'danger'
+  size?: number | 'auto'
+  textStyle?: ThemedTextProps['style']
+  type?: 'primary' | 'neutral' | 'danger' | 'transparent'
 }
 
 export const defaultButtonSize = 40
@@ -39,6 +41,7 @@ export function Button(props: ButtonProps) {
     round = true,
     size = defaultButtonSize,
     style,
+    textStyle,
     type = 'neutral',
     ...otherProps
   } = props
@@ -58,40 +61,42 @@ export function Button(props: ButtonProps) {
     containerViewRef,
     useCallback(
       isHovered => {
-        if (!innerTouchableRef.current) return
-
         const theme = getTheme()
-        innerTouchableRef.current.setNativeProps({
-          style: {
-            backgroundColor: isHovered
-              ? backgroundHoverThemeColor
-                ? getThemeColorOrItself(theme, backgroundHoverThemeColor, {
-                    enableCSSVariable: true,
-                  })
-                : theme.isDark
-                ? theme.backgroundColorTransparent10
-                : theme.foregroundColorTransparent10
-              : 'transparent',
-          },
-        })
 
-        if (!textRef.current) return
-        textRef.current.setNativeProps({
-          style: {
-            color:
-              isHovered && foregroundHoverThemeColor
-                ? getThemeColorOrItself(theme, foregroundHoverThemeColor, {
-                    enableCSSVariable: true,
-                  })
-                : getThemeColorOrItself(
-                    theme,
-                    foregroundThemeColor || 'foregroundColor',
-                    {
+        if (innerTouchableRef.current) {
+          innerTouchableRef.current.setNativeProps({
+            style: {
+              backgroundColor: isHovered
+                ? backgroundHoverThemeColor
+                  ? getThemeColorOrItself(theme, backgroundHoverThemeColor, {
                       enableCSSVariable: true,
-                    },
-                  ),
-          },
-        })
+                    })
+                  : theme.isDark
+                  ? theme.backgroundColorTransparent10
+                  : theme.foregroundColorTransparent10
+                : 'transparent',
+            },
+          })
+        }
+
+        if (textRef.current) {
+          textRef.current.setNativeProps({
+            style: {
+              color:
+                isHovered && foregroundHoverThemeColor
+                  ? getThemeColorOrItself(theme, foregroundHoverThemeColor, {
+                      enableCSSVariable: true,
+                    })
+                  : getThemeColorOrItself(
+                      theme,
+                      foregroundThemeColor || 'foregroundColor',
+                      {
+                        enableCSSVariable: true,
+                      },
+                    ),
+            },
+          })
+        }
       },
       [
         backgroundThemeColor,
@@ -109,7 +114,7 @@ export function Button(props: ButtonProps) {
       style={[
         styles.button,
         { height: size },
-        round && { borderRadius: size / 2 },
+        round && { borderRadius: size === 'auto' ? radius : size / 2 },
         style,
       ]}
     >
@@ -122,8 +127,8 @@ export function Button(props: ButtonProps) {
           style={[
             sharedStyles.fullWidth,
             sharedStyles.fullHeight,
-            round && { borderRadius: size / 2 },
-            loading && sharedStyles.hidden,
+            round && { borderRadius: size === 'auto' ? radius : size / 2 },
+            loading && sharedStyles.opacity0,
           ]}
         >
           <View
@@ -131,8 +136,9 @@ export function Button(props: ButtonProps) {
               sharedStyles.center,
               sharedStyles.fullWidth,
               sharedStyles.fullHeight,
+              size === 'auto' && sharedStyles.paddingVertical,
               sharedStyles.paddingHorizontal,
-              round && { borderRadius: size / 2 },
+              round && { borderRadius: size === 'auto' ? radius : size / 2 },
               contentContainerStyle,
             ]}
           >
@@ -142,7 +148,11 @@ export function Button(props: ButtonProps) {
                 color={foregroundThemeColor}
                 style={[
                   styles.text,
-                  Platform.OS === 'web' && { lineHeight: size },
+                  Platform.OS === 'web' &&
+                    typeof size === 'number' && {
+                      lineHeight: size,
+                    },
+                  textStyle,
                 ]}
               >
                 {children}
@@ -175,7 +185,7 @@ export function getButtonColors(
 ): {
   backgroundThemeColor: keyof ThemeColors
   foregroundThemeColor: keyof ThemeColors
-  backgroundHoverThemeColor: keyof ThemeColors
+  backgroundHoverThemeColor: keyof ThemeColors | undefined
   foregroundHoverThemeColor: keyof ThemeColors
 } {
   switch (type) {
@@ -191,8 +201,16 @@ export function getButtonColors(
       return {
         backgroundThemeColor: 'primaryBackgroundColor',
         foregroundThemeColor: 'primaryForegroundColor',
-        backgroundHoverThemeColor: 'primaryBackgroundColor',
+        backgroundHoverThemeColor: undefined,
         foregroundHoverThemeColor: 'primaryForegroundColor',
+      }
+
+    case 'transparent':
+      return {
+        backgroundThemeColor: 'transparent',
+        foregroundThemeColor: 'foregroundColor',
+        backgroundHoverThemeColor: 'backgroundColorLess1',
+        foregroundHoverThemeColor: 'foregroundColor',
       }
 
     default:
@@ -212,6 +230,9 @@ const styles = StyleSheet.create({
   },
 
   text: {
-    fontWeight: '500',
+    lineHeight: normalTextSize + 4,
+    fontSize: normalTextSize,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 })

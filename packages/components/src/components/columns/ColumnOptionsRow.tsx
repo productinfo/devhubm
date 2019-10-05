@@ -1,17 +1,12 @@
-import _ from 'lodash'
-import React, { useCallback, useLayoutEffect, useRef } from 'react'
+import React, { useCallback, useRef } from 'react'
 import { View, ViewStyle } from 'react-native'
-import { useSpring } from 'react-spring/native'
 
-import { constants, GitHubIcon } from '@devhub/core'
+import { GitHubIcon } from '@devhub/core'
+import { useDynamicRef } from '../../hooks/use-dynamic-ref'
 import { useHover } from '../../hooks/use-hover'
 import { Platform } from '../../libs/platform'
-import {
-  columnHeaderItemContentSize,
-  contentPadding,
-} from '../../styles/variables'
-import { getDefaultReactSpringAnimationConfig } from '../../utils/helpers/animations'
-import { SpringAnimatedView } from '../animated/spring/SpringAnimatedView'
+import { sharedStyles } from '../../styles/shared'
+import { contentPadding } from '../../styles/variables'
 import { AccordionView } from '../common/AccordionView'
 import { ConditionalWrap } from '../common/ConditionalWrap'
 import { Separator } from '../common/Separator'
@@ -20,19 +15,22 @@ import {
   TouchableOpacity,
   TouchableOpacityProps,
 } from '../common/TouchableOpacity'
-import { useTheme } from '../context/ThemeContext'
+import { getTheme } from '../context/ThemeContext'
+import { ThemedIcon } from '../themed/ThemedIcon'
 import { ThemedText } from '../themed/ThemedText'
-import { getColumnHeaderThemeColors } from './ColumnHeader'
-import { ColumnHeaderItem } from './ColumnHeaderItem'
+import { ThemedView } from '../themed/ThemedView'
+import {
+  columnHeaderItemContentSize,
+  getColumnHeaderThemeColors,
+} from './ColumnHeader'
 
 export interface ColumnOptionsRowProps {
-  analyticsLabel: TouchableOpacityProps['analyticsLabel']
+  analyticsLabel?: TouchableOpacityProps['analyticsLabel']
   children: React.ReactNode
   containerStyle?: ViewStyle
   contentContainerStyle?: ViewStyle
   disableBackground?: boolean
   enableBackgroundHover?: boolean
-  forceImmediate?: boolean
   hasChanged: boolean
   headerItemFixedIconSize?: number
   hideSeparator?: boolean
@@ -65,84 +63,52 @@ export function ColumnOptionsRow(props: ColumnOptionsRowProps) {
   const subtitle = _right && typeof _right === 'string' ? _right : undefined
   const right = subtitle ? undefined : _right
 
-  const theme = useTheme()
+  const containerRef = useRef<View>(null)
+  const innerRef = useRef<View>(null)
+  const isOpenRef = useDynamicRef(isOpen)
+  const isHoveredRef = useRef(false)
+  const isPressingRef = useRef(false)
 
-  const cacheRef = useRef({
-    isHovered: false,
-    isPressing: false,
-  })
+  const updateStyles = useCallback(() => {
+    if (!innerRef.current) return
 
-  const getStyles = useCallback(
-    ({ forceImmediate }: { forceImmediate?: boolean } = {}) => {
-      const { isHovered, isPressing } = cacheRef.current
-      const immediate =
-        constants.DISABLE_ANIMATIONS ||
-        forceImmediate ||
-        isHovered ||
-        Platform.supportsTouch
-
-      return {
-        config: getDefaultReactSpringAnimationConfig(),
-        immediate,
+    const theme = getTheme()
+    innerRef.current.setNativeProps({
+      style: {
         backgroundColor:
-          enableBackgroundHover && (isHovered || isPressing || isOpen)
+          enableBackgroundHover &&
+          !isOpenRef.current &&
+          (isHoveredRef.current || isPressingRef.current)
             ? theme[getColumnHeaderThemeColors().hover]
-            : theme[getColumnHeaderThemeColors().normal],
-      }
-    },
-    [enableBackgroundHover, isOpen, theme],
-  )
+            : 'transparent',
+      },
+    })
+  }, [enableBackgroundHover])
 
-  const updateStyles = useCallback(
-    ({ forceImmediate }: { forceImmediate?: boolean }) => {
-      setSpringAnimatedStyles(getStyles({ forceImmediate }))
-    },
-    [getStyles],
-  )
+  const initialIsHovered = useHover(onToggle ? innerRef : null, isHovered => {
+    if (isHoveredRef.current === isHovered) return
+    isHoveredRef.current = isHovered
+    updateStyles()
 
-  const touchableRef = useRef(null)
-  const initialIsHovered = useHover(
-    onToggle ? touchableRef : null,
-    isHovered => {
-      if (cacheRef.current.isHovered === isHovered) return
-      cacheRef.current.isHovered = isHovered
-      updateStyles({ forceImmediate: false })
-
-      if (openOnHover && onToggle && !isOpen) onToggle()
-    },
-  )
-  cacheRef.current.isHovered = initialIsHovered
-
-  const [springAnimatedStyles, setSpringAnimatedStyles] = useSpring(getStyles)
-
-  const isFirstRendeRef = useRef(true)
-  useLayoutEffect(() => {
-    if (isFirstRendeRef.current) {
-      isFirstRendeRef.current = false
-      return
-    }
-
-    updateStyles({ forceImmediate: true })
-  }, [updateStyles])
+    if (openOnHover && onToggle && !isOpenRef.current) onToggle()
+  })
+  isHoveredRef.current = initialIsHovered
 
   return (
-    <SpringAnimatedView
-      style={{
-        backgroundColor: enableBackgroundHover
-          ? springAnimatedStyles.backgroundColor
-          : undefined,
-        // borderWidth: 0,
-        // borderColor: 'transparent',
-        // borderBottomWidth: separatorSize,
-        // borderBottomColor: theme.backgroundColorLess1,
-      }}
+    <ThemedView
+      ref={containerRef}
+      backgroundColor={
+        enableBackgroundHover && isOpen
+          ? getColumnHeaderThemeColors().hover
+          : getColumnHeaderThemeColors().normal
+      }
     >
       <ConditionalWrap
         condition={!!onToggle}
         wrap={child =>
           onToggle ? (
             <TouchableOpacity
-              ref={touchableRef}
+              ref={innerRef as any}
               activeOpacity={1}
               analyticsAction={isOpen ? 'hide' : 'show'}
               analyticsCategory="option_row"
@@ -152,56 +118,54 @@ export function ColumnOptionsRow(props: ColumnOptionsRowProps) {
               }}
               onPressIn={() => {
                 if (!Platform.supportsTouch) return
-
-                cacheRef.current.isPressing = true
-                updateStyles({ forceImmediate: false })
+                isPressingRef.current = true
+                updateStyles()
               }}
               onPressOut={() => {
                 if (!Platform.supportsTouch) return
-
-                cacheRef.current.isPressing = false
-                updateStyles({ forceImmediate: false })
+                isPressingRef.current = false
+                updateStyles()
               }}
             >
               {child}
             </TouchableOpacity>
           ) : (
-            <View>{child}</View>
+            <View ref={innerRef}>{child}</View>
           )
         }
       >
         <View
           style={[
-            {
-              flexDirection: 'row',
-              alignItems: 'center',
-              alignContent: 'center',
-              padding: contentPadding,
-            },
+            sharedStyles.horizontalAndVerticallyAligned,
+            sharedStyles.paddingVertical,
+            { paddingHorizontal: (contentPadding * 2) / 3 },
             !!isOpen && !onToggle && { paddingBottom: contentPadding / 2 },
             containerStyle,
           ]}
         >
-          <ColumnHeaderItem
-            analyticsLabel={undefined}
-            fixedIconSize
-            iconName={iconName}
-            iconStyle={{ lineHeight: 22 }}
-            noPadding
+          <ThemedIcon
+            color="foregroundColor"
+            name={iconName}
             selectable={false}
-            size={headerItemFixedIconSize}
-            tooltip={undefined}
+            style={{
+              lineHeight: 22,
+              width: headerItemFixedIconSize,
+              fontSize: headerItemFixedIconSize,
+              textAlign: 'center',
+            }}
           />
 
           <Spacer width={contentPadding / 2} />
 
-          <ThemedText
-            color="foregroundColor"
-            numberOfLines={1}
-            style={{ fontWeight: '500' }}
-          >
-            {title}
-          </ThemedText>
+          {!!title && (
+            <ThemedText
+              color="foregroundColor"
+              numberOfLines={1}
+              style={{ fontWeight: '500' }}
+            >
+              {title}
+            </ThemedText>
+          )}
 
           <Spacer flex={1} minWidth={contentPadding / 2} />
 
@@ -219,20 +183,24 @@ export function ColumnOptionsRow(props: ColumnOptionsRowProps) {
             </ThemedText>
           )}
 
-          {right}
+          {!!right && right}
 
           {!!onToggle && (
             <>
               <Spacer width={contentPadding} />
 
-              <ColumnHeaderItem
-                analyticsLabel={undefined}
-                iconName={isOpen ? 'chevron-up' : 'chevron-down'}
-                iconStyle={{ lineHeight: undefined }}
-                noPadding
+              <ThemedIcon
+                color="foregroundColor"
+                name={isOpen ? 'chevron-up' : 'chevron-down'}
                 selectable={false}
-                tooltip={undefined}
+                style={{
+                  width: headerItemFixedIconSize,
+                  fontSize: headerItemFixedIconSize,
+                  textAlign: 'center',
+                }}
               />
+
+              <Spacer width={contentPadding / 3} />
             </>
           )}
         </View>
@@ -250,6 +218,6 @@ export function ColumnOptionsRow(props: ColumnOptionsRowProps) {
 
         {!hideSeparator && <Separator horizontal />}
       </ConditionalWrap>
-    </SpringAnimatedView>
+    </ThemedView>
   )
 }
