@@ -11,8 +11,8 @@ import {
 } from '../../utils/helpers/github/emojis'
 import { Button, defaultButtonSize } from '../common/Button'
 import { fabSize } from '../common/FAB'
+import { fabSpacing } from '../common/FABRenderer'
 import { Spacer } from '../common/Spacer'
-import { fabSpacing } from '../layout/FABRenderer'
 import { ThemedActivityIndicator } from '../themed/ThemedActivityIndicator'
 import { ThemedText } from '../themed/ThemedText'
 import {
@@ -127,6 +127,7 @@ export const EmptyCards = React.memo((props: EmptyCardsProps) => {
             padding: contentPadding,
           },
         ]}
+        pointerEvents="box-none"
       >
         {!!clearMessage && (
           <ThemedText
@@ -158,7 +159,10 @@ export const EmptyCards = React.memo((props: EmptyCardsProps) => {
   }
 
   return (
-    <View style={[sharedStyles.flex, sharedStyles.center]}>
+    <View
+      style={[sharedStyles.flex, sharedStyles.center]}
+      pointerEvents="box-none"
+    >
       {renderContent()}
     </View>
   )

@@ -2,7 +2,7 @@ import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 import { Elements, StripeProvider } from 'react-stripe-elements'
 
-import { activePlans, Plan } from '@devhub/core/dist'
+import { activePlans, Plan } from '@brunolemos/devhub-core/dist'
 import Link from 'next/link'
 import { Select } from '../components/common/Select'
 import LandingLayout from '../components/layouts/LandingLayout'
@@ -142,7 +142,7 @@ export default function SubscribePage(_props: SubscribePageProps) {
               ? authData.plan.id === plan.id
                 ? 'Update my '
                 : 'Switch to '
-              : 'Subscribe to '}
+              : 'Unlock '}
             <Select<Plan['cannonicalId']>
               onChange={option => setPlanCannonicalId(option)}
             >
@@ -161,7 +161,7 @@ export default function SubscribePage(_props: SubscribePageProps) {
                 </Select.Option>
               ))}
             </Select>{' '}
-            plan
+            {authData.plan && authData.plan.amount > 0 ? 'plan' : 'features'}
           </h1>
 
           <p className="mb-4 text-sm text-muted-65">{`${formatPrice(

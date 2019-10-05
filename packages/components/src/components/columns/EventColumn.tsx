@@ -38,6 +38,7 @@ export const EventColumn = React.memo((props: EventColumnProps) => {
     ),
     [
       columnId,
+      columnIndex,
       pointerEvents,
       swipeable,
       headerDetails && headerDetails.ownerIsKnown,
@@ -50,9 +51,11 @@ export const EventColumn = React.memo((props: EventColumnProps) => {
   return (
     <ColumnRenderer
       key={`event-column-${columnId}-inner`}
-      avatarRepo={headerDetails.avatarProps && headerDetails.avatarProps.repo}
-      avatarUsername={
-        headerDetails.avatarProps && headerDetails.avatarProps.username
+      avatarImageURL={
+        headerDetails.avatarProps && headerDetails.avatarProps.imageURL
+      }
+      avatarLinkURL={
+        headerDetails.avatarProps && headerDetails.avatarProps.linkURL
       }
       columnId={columnId}
       columnType="activity"

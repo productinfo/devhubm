@@ -1,9 +1,7 @@
 import { StyleSheet } from 'react-native'
 
-import {
-  columnHeaderItemContentSize,
-  contentPadding,
-} from '../../../styles/variables'
+import { contentPadding } from '../../../styles/variables'
+import { columnHeaderItemContentSize } from '../ColumnHeader'
 
 export const sharedColumnOptionsStyles = StyleSheet.create({
   fullWidthCheckboxContainer: {
@@ -18,7 +16,7 @@ export const sharedColumnOptionsStyles = StyleSheet.create({
     alignSelf: 'stretch',
     maxWidth: '100%',
     paddingVertical: contentPadding / 4,
-    paddingHorizontal: contentPadding,
+    paddingHorizontal: (contentPadding * 2) / 3,
   },
 
   checkboxSquareContainer: {

@@ -1,7 +1,7 @@
 import React from 'react'
 import { View } from 'react-native'
 
-import { constants } from '@devhub/core'
+import { allPlans, constants } from '@devhub/core'
 import { useReduxAction } from '../../hooks/use-redux-action'
 import { useReduxState } from '../../hooks/use-redux-state'
 import { Platform } from '../../libs/platform'
@@ -14,7 +14,6 @@ import { ModalColumn } from '../columns/ModalColumn'
 import { AppVersion } from '../common/AppVersion'
 import { Avatar } from '../common/Avatar'
 import { Button } from '../common/Button'
-import { ButtonLink } from '../common/ButtonLink'
 import { FullHeightScrollView } from '../common/FullHeightScrollView'
 import { Link } from '../common/Link'
 import { Spacer } from '../common/Spacer'
@@ -22,6 +21,7 @@ import { SubHeader } from '../common/SubHeader'
 import { useAppLayout } from '../context/LayoutContext'
 import { ThemedIcon } from '../themed/ThemedIcon'
 import { ThemedText } from '../themed/ThemedText'
+import { DesktopPreferences } from '../widgets/DesktopPreferences'
 import { ThemePreference } from '../widgets/ThemePreference'
 
 export interface SettingsModalProps {
@@ -33,16 +33,17 @@ export const SettingsModal = React.memo((props: SettingsModalProps) => {
 
   const { sizename } = useAppLayout()
   const username = useReduxState(selectors.currentGitHubUsernameSelector)
-  const logout = useReduxAction(actions.logout)
+  const _userPlan = useReduxState(selectors.currentUserPlanSelector)
   const pushModal = useReduxAction(actions.pushModal)
+
+  const userPlan = allPlans.find(p => p.id === (_userPlan && _userPlan.id))
 
   return (
     <ModalColumn
-      hideCloseButton={sizename === '1-small'}
-      iconName="gear"
+      hideCloseButton={sizename <= '2-medium'}
       name="SETTINGS"
       right={
-        sizename === '1-small' && username ? (
+        sizename <= '2-medium' && username ? (
           <Avatar
             backgroundColorLoading=""
             shape="circle"
@@ -61,6 +62,32 @@ export const SettingsModal = React.memo((props: SettingsModalProps) => {
         bounces
         style={sharedStyles.flex}
       >
+        <View>
+          <SubHeader title="Current plan">
+            <Spacer flex={1} />
+
+            <Button onPress={() => pushModal({ name: 'PRICING' })} size={32}>
+              <View style={[sharedStyles.center, sharedStyles.horizontal]}>
+                <ThemedIcon color="foregroundColor" name="pencil" />
+                <Spacer width={contentPadding / 2} />
+                <ThemedText color="foregroundColor">{`${(userPlan &&
+                  userPlan.label) ||
+                  'None'}`}</ThemedText>
+              </View>
+            </Button>
+          </SubHeader>
+        </View>
+
+        {!!(
+          Platform.isElectron ||
+          (Platform.OS === 'web' && sizename > '2-medium')
+        ) && (
+          <>
+            <DesktopPreferences />
+            <Spacer height={contentPadding} />
+          </>
+        )}
+
         <ThemePreference />
 
         {/* <Spacer height={contentPadding * 2} />
@@ -73,7 +100,6 @@ export const SettingsModal = React.memo((props: SettingsModalProps) => {
             analyticsCategory="enterprise"
             analyticsAction="setup"
             analyticsLabel={username}
-            analyticsPayload={{ user_id: userId }}
             onPress={() => pushModal({ name: 'SETUP_GITHUB_ENTERPRISE' })}
           >
             Setup GitHub Enterprise
@@ -110,28 +136,9 @@ export const SettingsModal = React.memo((props: SettingsModalProps) => {
               />
             </Button>
           </SubHeader>
-        ) : Platform.OS === 'web' &&
-          !Platform.isElectron &&
-          sizename !== '1-small' ? (
-          <SubHeader title="Download desktop app">
-            <Spacer flex={1} />
-
-            <ButtonLink
-              analyticsLabel="download_desktop_app"
-              href="https://github.com/devhubapp/devhub/releases"
-              openOnNewTab
-              size={32}
-            >
-              <ThemedIcon
-                color="foregroundColor"
-                name="desktop-download"
-                size={16}
-              />
-            </ButtonLink>
-          </SubHeader>
         ) : null}
 
-        <View>
+        <View style={{ minHeight: 32 }}>
           <SubHeader title="Community">
             <Spacer flex={1} />
 
@@ -139,7 +146,8 @@ export const SettingsModal = React.memo((props: SettingsModalProps) => {
               <Link
                 analyticsCategory="preferences_link"
                 analyticsLabel="twitter"
-                href="https://twitter.com/devhub_app"
+                enableForegroundHover
+                href={constants.DEVHUB_LINKS.TWITTER_PROFILE}
                 openOnNewTab
                 textProps={{
                   color: 'foregroundColor',
@@ -166,7 +174,8 @@ export const SettingsModal = React.memo((props: SettingsModalProps) => {
               <Link
                 analyticsCategory="preferences_link"
                 analyticsLabel="slack"
-                href={constants.SLACK_INVITE_LINK}
+                enableForegroundHover
+                href={constants.DEVHUB_LINKS.SLACK_INVITATION}
                 openOnNewTab
                 textProps={{
                   color: 'foregroundColor',
@@ -193,7 +202,8 @@ export const SettingsModal = React.memo((props: SettingsModalProps) => {
               <Link
                 analyticsCategory="preferences_link"
                 analyticsLabel="github"
-                href="https://github.com/devhubapp/devhub"
+                enableForegroundHover
+                href={constants.DEVHUB_LINKS.GITHUB_REPOSITORY}
                 openOnNewTab
                 textProps={{
                   color: 'foregroundColor',
@@ -222,18 +232,6 @@ export const SettingsModal = React.memo((props: SettingsModalProps) => {
             onPress={() => pushModal({ name: 'ADVANCED_SETTINGS' })}
           >
             Show advanced settings
-          </Button>
-
-          <Spacer height={contentPadding / 2} />
-
-          <Button
-            key="logout-button"
-            analyticsCategory="engagement"
-            analyticsAction="logout"
-            analyticsLabel=""
-            onPress={() => logout()}
-          >
-            Logout
           </Button>
         </View>
       </FullHeightScrollView>

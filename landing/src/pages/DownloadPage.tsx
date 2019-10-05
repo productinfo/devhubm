@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import React, { useEffect, useRef, useState } from 'react'
 
-import { PlatformCategory } from '@devhub/core/dist'
+import { PlatformCategory } from '@brunolemos/devhub-core/dist'
 import Button from '../components/common/buttons/Button'
 import { Select } from '../components/common/Select'
 import LandingLayout from '../components/layouts/LandingLayout'
@@ -47,8 +47,8 @@ export default function DownloadPage(_props: DownloadPageProps) {
   const category = _category || system.category || 'web'
   const { os } = system
 
-  const version = '0.94.2'
-  const releaseDate = '2019-09-06'
+  const version = '0.96.0'
+  const releaseDate = '2019-09-22'
 
   return (
     <LandingLayout>
@@ -93,7 +93,7 @@ export default function DownloadPage(_props: DownloadPageProps) {
             <>
               <p className={swClasses.description}>
                 Download DevHub desktop app for a more complete experience with
-                menubar and badge support.
+                menubar and push notifications.
               </p>
 
               <div className={swClasses.buttonsContainer}>
@@ -122,7 +122,7 @@ export default function DownloadPage(_props: DownloadPageProps) {
                   type={os === 'linux' ? 'primary' : 'neutral'}
                   className={swClasses.button}
                   download
-                  href={`https://github.com/devhubapp/devhub/releases/download/v${version}/devhub-${version}-x86_64.AppImage`}
+                  href={`https://github.com/devhubapp/devhub/releases/download/v${version}/DevHub-${version}.AppImage`}
                 >
                   Download for Linux
                 </Button>

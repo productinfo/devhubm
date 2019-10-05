@@ -4,6 +4,7 @@ import {
   View,
 } from 'react-native'
 
+import { sharedStyles } from '../../styles/shared'
 import { Touchable, TouchableProps } from './Touchable'
 
 export interface TouchableWithoutFeedbackProps
@@ -20,8 +21,11 @@ export const TouchableWithoutFeedback = React.forwardRef<
       ref={ref}
       TouchableComponent={TouchableWithoutFeedbackOriginal}
       {...otherProps}
+      style={sharedStyles.opacity100}
     >
-      <View style={style}>{children}</View>
+      <View style={[props.disabled && sharedStyles.muted, style]}>
+        {children}
+      </View>
     </Touchable>
   )
 })

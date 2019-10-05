@@ -1,10 +1,11 @@
-import { app, BrowserWindow, Tray } from 'electron'
+import { app, BrowserWindow, dialog, nativeImage, Tray } from 'electron'
+import fetch from 'electron-fetch'
 import path from 'path'
 
-import * as config from './config'
 import * as constants from './constants'
 import { __DEV__ } from './libs/electron-is-dev'
-import * as window from './window'
+import { playAudioFile } from './libs/play-sound'
+import { getMainWindow } from './window'
 
 export function registerAppSchema() {
   unregisterAppSchema()
@@ -56,26 +57,31 @@ export function getCenterPosition(obj: BrowserWindow | Tray) {
   return { x, y }
 }
 
-export function enableDesktopMode() {
-  config.store.set('isMenuBarMode', false)
+export async function imageURLToNativeImage(imageURL: string | undefined) {
+  if (!imageURL) return undefined
 
-  const mainWindow = window.getMainWindow()
-  if (mainWindow.isFullScreen()) {
-    mainWindow.setFullScreen(false)
-    setTimeout(window.updateOrRecreateWindow, 1000)
-  } else {
-    window.updateOrRecreateWindow()
+  try {
+    const response = await fetch(imageURL)
+    const arrayBuffer = await response.arrayBuffer()
+
+    return nativeImage.createFromBuffer(Buffer.from(arrayBuffer))
+  } catch (error) {
+    console.error(error)
+    if (__DEV__ && getMainWindow()) {
+      dialog.showMessageBox(getMainWindow()!, { message: `${error}` })
+    }
   }
 }
 
-export function enableMenuBarMode() {
-  config.store.set('isMenuBarMode', true)
-
-  const mainWindow = window.getMainWindow()
-  if (mainWindow.isFullScreen()) {
-    mainWindow.setFullScreen(false)
-    setTimeout(window.updateOrRecreateWindow, 1000)
-  } else {
-    window.updateOrRecreateWindow()
+let lastNotificationSoundPlayedAt: string
+export function playNotificationSound() {
+  if (
+    lastNotificationSoundPlayedAt &&
+    Date.now() - new Date(lastNotificationSoundPlayedAt).getTime() < 3000
+  ) {
+    return
   }
+
+  lastNotificationSoundPlayedAt = new Date().toISOString()
+  playAudioFile(constants.notificationSoundPath)
 }

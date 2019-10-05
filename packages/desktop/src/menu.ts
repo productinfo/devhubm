@@ -10,6 +10,7 @@ import * as config from './config'
 import * as constants from './constants'
 import * as dock from './dock'
 import * as helpers from './helpers'
+import * as ipc from './ipc'
 import { __DEV__ } from './libs/electron-is-dev'
 import * as tray from './tray'
 import * as updater from './updater'
@@ -68,14 +69,9 @@ export function getOpenAtLoginMenuItem() {
     enabled: true,
     visible: true,
     click(item) {
-      const openAtLoginChangeCount =
-        (config.store.get('openAtLoginChangeCount') as number) || 0
-
-      config.store.set('openAtLoginChangeCount', openAtLoginChangeCount + 1)
-
-      app.setLoginItemSettings({
-        openAtLogin: item.checked,
-        openAsHidden: true,
+      ipc.emit('update-settings', {
+        settings: 'openAtLogin',
+        value: item.checked,
       })
     },
   }
@@ -212,7 +208,10 @@ export function getModeMenuItems() {
       checked: !config.store.get('isMenuBarMode'),
       enabled,
       click() {
-        helpers.enableDesktopMode()
+        ipc.emit('update-settings', {
+          settings: 'isMenuBarMode',
+          value: false,
+        })
       },
     },
     {
@@ -221,7 +220,10 @@ export function getModeMenuItems() {
       checked: !!config.store.get('isMenuBarMode'),
       enabled, // : enabled && !mainWindow.isFullScreen(),
       click() {
-        helpers.enableMenuBarMode()
+        ipc.emit('update-settings', {
+          settings: 'isMenuBarMode',
+          value: true,
+        })
       },
     },
   ]
@@ -244,21 +246,10 @@ export function getWindowOptionsMenuItems() {
           enabled,
           visible: !config.store.get('isMenuBarMode'),
           click(item) {
-            config.store.set('lockOnCenter', item.checked)
-
-            if (item.checked) {
-              if (!config.store.get('isMenuBarMode')) {
-                mainWindow.setMovable(false)
-              }
-
-              window.center(mainWindow)
-            } else {
-              if (!config.store.get('isMenuBarMode')) {
-                mainWindow.setMovable(
-                  window.getBrowserWindowOptions().movable !== false,
-                )
-              }
-            }
+            ipc.emit('update-settings', {
+              settings: 'lockOnCenter',
+              value: item.checked,
+            })
           },
         } as MenuItemConstructorOptions)
       : (undefined as any),
@@ -405,6 +396,7 @@ export function getWindowMenuItems() {
       label: 'Close',
       accelerator: 'CmdOrCtrl+W',
       click() {
+        if (!mainWindow) return
         mainWindow.hide()
       },
     },
@@ -419,6 +411,8 @@ export function getWindowMenuItems() {
       enabled,
       checked: mainWindow && mainWindow.isMaximized(),
       click(item) {
+        if (!mainWindow) return
+
         helpers.showWindow(mainWindow)
 
         if (item.checked) mainWindow.maximize()
@@ -426,7 +420,9 @@ export function getWindowMenuItems() {
       },
     },
     {
-      visible: !config.store.get('isMenuBarMode') || mainWindow.isFullScreen(),
+      visible:
+        !config.store.get('isMenuBarMode') ||
+        (mainWindow && mainWindow.isFullScreen()),
       role: 'togglefullscreen',
     },
   ]
@@ -445,6 +441,7 @@ export function getTrayMenuItems() {
       label: 'Open',
       visible: !isCurrentWindow,
       click() {
+        if (!mainWindow) return
         helpers.showWindow(mainWindow)
       },
     },
@@ -502,7 +499,7 @@ export function updateMenu() {
     })
 
     const mainWindow = window.getMainWindow()
-    mainWindow.setTouchBar(touchBar)
+    if (mainWindow) mainWindow.setTouchBar(touchBar)
   }
 
   const _dock = dock.getDock()

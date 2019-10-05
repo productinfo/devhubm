@@ -1,6 +1,13 @@
-import { Column, getColumnHeaderDetails } from '@devhub/core'
+import { PixelRatio } from 'react-native'
+
+import {
+  Column,
+  ColumnSubscription,
+  getColumnHeaderDetails,
+} from '@devhub/core'
 import { EMPTY_ARRAY, EMPTY_OBJ } from '../../utils/constants'
 import { RootState } from '../types'
+import { currentGitHubUsernameSelector } from './github'
 import { createArraySelector, createDeepEqualSelector } from './helpers'
 import { subscriptionSelector } from './subscriptions'
 
@@ -15,6 +22,9 @@ export const columnSelector = (state: RootState, id: string) => {
 
 export const columnIdsSelector = (state: RootState) =>
   s(state).allIds || EMPTY_ARRAY
+
+export const columnCountSelector = (state: RootState) =>
+  columnIdsSelector(state).length
 
 export const columnsArrSelector = createArraySelector(
   (state: RootState) => columnIdsSelector(state),
@@ -39,7 +49,7 @@ export const columnSubscriptionsSelector = createArraySelector(
       .map(subscriptionId =>
         subscriptionSelector({ subscriptions } as any, subscriptionId),
       )
-      .filter(Boolean),
+      .filter(Boolean) as ColumnSubscription[],
 )
 
 export const columnSubscriptionSelector = (
@@ -54,8 +64,16 @@ export const createColumnHeaderDetailsSelector = () =>
       const column = columnSelector(state, columnId)
       if (!column) return undefined
 
-      const subscription = columnSubscriptionSelector(state, columnId)
-      return subscription
+      const subscriptions = columnSubscriptionsSelector(state, columnId)
+      return subscriptions
     },
-    (column, subscription) => getColumnHeaderDetails(column, subscription),
+    (state: RootState, _columnId: string) =>
+      currentGitHubUsernameSelector(state),
+    (column, subscriptions, loggedUsername) =>
+      getColumnHeaderDetails(
+        column,
+        subscriptions,
+        { loggedUsername },
+        PixelRatio.getPixelSizeForLayoutSize,
+      ),
   )

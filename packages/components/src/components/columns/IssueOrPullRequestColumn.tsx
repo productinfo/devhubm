@@ -43,6 +43,7 @@ export const IssueOrPullRequestColumn = React.memo(
       ),
       [
         columnId,
+        columnIndex,
         pointerEvents,
         swipeable,
         headerDetails && headerDetails.ownerIsKnown,
@@ -55,9 +56,11 @@ export const IssueOrPullRequestColumn = React.memo(
     return (
       <ColumnRenderer
         key={`issue-or-pr-column-${columnId}-inner`}
-        avatarRepo={headerDetails.avatarProps && headerDetails.avatarProps.repo}
-        avatarUsername={
-          headerDetails.avatarProps && headerDetails.avatarProps.username
+        avatarImageURL={
+          headerDetails.avatarProps && headerDetails.avatarProps.imageURL
+        }
+        avatarLinkURL={
+          headerDetails.avatarProps && headerDetails.avatarProps.linkURL
         }
         columnId={columnId}
         columnIndex={columnIndex}

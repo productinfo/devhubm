@@ -6,7 +6,7 @@ import React, {
   useState,
 } from 'react'
 
-import { loadTheme, Theme, themes } from '@devhub/core/dist'
+import { loadTheme, Theme, themes } from '@brunolemos/devhub-core/dist'
 
 export interface ThemeProviderProps {
   children: React.ReactNode
@@ -19,7 +19,7 @@ export interface ThemeProviderState {
 
 const defaultLightTheme = themes['light-white']!
 const defaultDarkTheme = themes['dark-gray']!
-const defaultTheme = loadTheme({ id: 'auto' })
+const defaultTheme = defaultDarkTheme
 
 export const ThemeContext = React.createContext<ThemeProviderState>({
   theme: defaultTheme,

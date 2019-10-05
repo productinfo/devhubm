@@ -2,14 +2,11 @@ import React, { useCallback, useRef } from 'react'
 import { StyleSheet } from 'react-native'
 
 import { ThemeColors } from '@devhub/core'
-import { IconProps } from 'react-native-vector-icons/Icon'
+import { useDynamicRef } from '../../hooks/use-dynamic-ref'
 import { useHover } from '../../hooks/use-hover'
-import { Octicons } from '../../libs/vector-icons'
+import { OcticonIconProps, Octicons } from '../../libs/vector-icons'
 import { sharedStyles } from '../../styles/shared'
-import {
-  columnHeaderItemContentSize,
-  contentPadding,
-} from '../../styles/variables'
+import { contentPadding } from '../../styles/variables'
 import { getTheme } from '../context/ThemeContext'
 import { getThemeColorOrItself } from '../themed/helpers'
 import { ThemedText } from '../themed/ThemedText'
@@ -21,17 +18,17 @@ import {
 
 export interface IconButtonProps extends TouchableWithoutFeedbackProps {
   active?: boolean
-  name: IconProps['name']
+  name: OcticonIconProps['name']
   size?: number
   type?: 'primary' | 'neutral' | 'danger'
 }
 
-export const defaultIconButtonSize = columnHeaderItemContentSize
+export const defaultIconButtonSize = 17
 
 export function IconButton(props: IconButtonProps) {
   const {
-    active,
-    disabled,
+    active: _active,
+    disabled: _disabled,
     name,
     onPressIn,
     onPressOut,
@@ -47,13 +44,23 @@ export function IconButton(props: IconButtonProps) {
 
   const isHoveredRef = useRef(false)
   const isPressedRef = useRef(false)
+  const activeRef = useDynamicRef(_active)
+  const disabledRef = useDynamicRef(_disabled)
 
   const {
-    foregroundThemeColor,
+    foregroundThemeColor: _foregroundThemeColor,
     tintBackgroundHoveredOpacity,
     tintBackgroundPressedOpacity,
     tintThemeColor,
   } = getIconButtonColors(type)
+
+  const handleDisabledOpacityInternally =
+    _foregroundThemeColor === 'foregroundColor'
+
+  const foregroundThemeColor: typeof _foregroundThemeColor =
+    handleDisabledOpacityInternally && disabledRef.current
+      ? 'foregroundColorMuted40'
+      : _foregroundThemeColor
 
   const updateStyles = useCallback(() => {
     const theme = getTheme()
@@ -64,12 +71,12 @@ export function IconButton(props: IconButtonProps) {
           backgroundColor:
             (isPressedRef.current || isHoveredRef.current) &&
             tintThemeColor &&
-            !disabled
+            !disabledRef.current
               ? getThemeColorOrItself(theme, tintThemeColor, {
                   enableCSSVariable: true,
                 })
               : 'transparent',
-          opacity: disabled
+          opacity: disabledRef.current
             ? 0
             : isPressedRef.current
             ? tintBackgroundPressedOpacity
@@ -84,25 +91,21 @@ export function IconButton(props: IconButtonProps) {
       textRef.current.setNativeProps({
         style: {
           color:
-            (isHoveredRef.current || isPressedRef.current || active) &&
+            (isHoveredRef.current ||
+              isPressedRef.current ||
+              activeRef.current) &&
             tintThemeColor &&
-            !disabled
+            !disabledRef.current
               ? getThemeColorOrItself(theme, tintThemeColor, {
                   enableCSSVariable: true,
                 })
-              : getThemeColorOrItself(
-                  theme,
-                  foregroundThemeColor || 'foregroundColor',
-                  {
-                    enableCSSVariable: true,
-                  },
-                ),
+              : getThemeColorOrItself(theme, foregroundThemeColor, {
+                  enableCSSVariable: true,
+                }),
         },
       })
     }
   }, [
-    active,
-    disabled,
     foregroundThemeColor,
     tintBackgroundHoveredOpacity,
     tintBackgroundPressedOpacity,
@@ -113,7 +116,6 @@ export function IconButton(props: IconButtonProps) {
     touchableRef,
     useCallback(
       isHovered => {
-        if (isHovered === (isHoveredRef.current && !disabled)) return
         isHoveredRef.current = isHovered
         updateStyles()
       },
@@ -125,20 +127,16 @@ export function IconButton(props: IconButtonProps) {
     <TouchableWithoutFeedback
       ref={touchableRef}
       {...touchableProps}
-      disabled={disabled}
+      disabled={disabledRef.current}
       onPressIn={e => {
-        if (!isPressedRef.current && !disabled) {
-          isPressedRef.current = true
-          updateStyles()
-        }
+        isPressedRef.current = true
+        updateStyles()
 
         if (onPressIn) onPressIn(e)
       }}
       onPressOut={e => {
-        if (isPressedRef.current || disabled) {
-          isPressedRef.current = false
-          updateStyles()
-        }
+        isPressedRef.current = false
+        updateStyles()
 
         if (onPressOut) onPressOut(e)
       }}
@@ -150,6 +148,7 @@ export function IconButton(props: IconButtonProps) {
           height: size + contentPadding,
           borderRadius: (size + contentPadding) / 2,
         },
+        handleDisabledOpacityInternally && sharedStyles.opacity100,
         style,
       ]}
     >
@@ -161,13 +160,18 @@ export function IconButton(props: IconButtonProps) {
             StyleSheet.absoluteFill,
             {
               borderRadius: (size + contentPadding) / 2,
-              opacity: active ? tintBackgroundHoveredOpacity : 0,
+              opacity: activeRef.current ? tintBackgroundHoveredOpacity : 0,
             },
           ]}
         />
 
         <ThemedText ref={textRef} color={foregroundThemeColor}>
-          <Octicons name={name} size={size} style={sharedStyles.textCenter} />
+          <Octicons
+            name={name}
+            selectable={false}
+            size={size}
+            style={sharedStyles.textCenter}
+          />
         </ThemedText>
       </>
     </TouchableWithoutFeedback>

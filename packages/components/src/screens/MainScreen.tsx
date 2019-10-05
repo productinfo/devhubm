@@ -1,24 +1,21 @@
 import _ from 'lodash'
 import qs from 'qs'
 import React, { useEffect, useMemo, useRef } from 'react'
-import { Dimensions, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import url from 'url'
 
+import { useDispatch } from 'react-redux'
 import { AppKeyboardShortcuts } from '../components/AppKeyboardShortcuts'
 import { AppBannerMessage } from '../components/banners/AppBannerMessage'
 import { ColumnSeparator } from '../components/columns/ColumnSeparator'
 import { ColumnsRenderer } from '../components/columns/ColumnsRenderer'
+import { FABRenderer } from '../components/common/FABRenderer'
 import { Screen } from '../components/common/Screen'
 import { Separator } from '../components/common/Separator'
-import {
-  APP_LAYOUT_BREAKPOINTS,
-  useAppLayout,
-} from '../components/context/LayoutContext'
-import { FABRenderer } from '../components/layout/FABRenderer'
-import { Sidebar } from '../components/layout/Sidebar'
+import { SidebarOrBottomBar } from '../components/common/SidebarOrBottomBar'
+import { useAppLayout } from '../components/context/LayoutContext'
 import { ModalRenderer } from '../components/modals/ModalRenderer'
 import { useAppVisibility } from '../hooks/use-app-visibility'
-import { useEmitter } from '../hooks/use-emitter'
 import { useReduxAction } from '../hooks/use-redux-action'
 import { useReduxState } from '../hooks/use-redux-state'
 import { analytics } from '../libs/analytics'
@@ -40,9 +37,10 @@ const styles = StyleSheet.create({
 export const MainScreen = React.memo(() => {
   const { appOrientation } = useAppLayout()
 
+  const dispatch = useDispatch()
   const currentOpenedModal = useReduxState(selectors.currentOpenedModal)
+  const plan = useReduxState(selectors.currentUserPlanSelector)
 
-  const closeAllModals = useReduxAction(actions.closeAllModals)
   const refreshInstallationsRequest = useReduxAction(
     actions.refreshInstallationsRequest,
   )
@@ -95,18 +93,17 @@ export const MainScreen = React.memo(() => {
     }
   }, [])
 
-  useEmitter(
-    'FOCUS_ON_COLUMN',
-    () => {
-      if (
-        currentOpenedModal &&
-        Dimensions.get('window').width <= APP_LAYOUT_BREAKPOINTS.MEDIUM
-      ) {
-        closeAllModals()
-      }
-    },
-    [!!currentOpenedModal],
-  )
+  const _planEffectHasRunRef = useRef(false)
+  useEffect(() => {
+    if (!_planEffectHasRunRef.current) {
+      _planEffectHasRunRef.current = true
+      return
+    }
+
+    dispatch(
+      actions.refreshInstallationsRequest({ includeInstallationToken: true }),
+    )
+  }, [plan && plan.id, plan && plan.updatedAt])
 
   useEffect(() => {
     if (!currentOpenedModal) {
@@ -133,10 +130,9 @@ export const MainScreen = React.memo(() => {
             },
           ]}
         >
-          <Sidebar
+          <SidebarOrBottomBar
             key="main-screen-sidebar"
-            horizontal={appOrientation === 'portrait'}
-            zIndex={1000}
+            type={appOrientation === 'portrait' ? 'bottombar' : 'sidebar'}
           />
 
           {appOrientation === 'portrait' ? (

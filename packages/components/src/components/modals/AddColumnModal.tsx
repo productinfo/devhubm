@@ -21,6 +21,7 @@ import { getDefaultReactSpringAnimationConfig } from '../../utils/helpers/animat
 import { SpringAnimatedTouchableOpacity } from '../animated/spring/SpringAnimatedTouchableOpacity'
 import { ModalColumn } from '../columns/ModalColumn'
 import { fabSize } from '../common/FAB'
+import { fabSpacing, shouldRenderFAB } from '../common/FABRenderer'
 import { FullHeightScrollView } from '../common/FullHeightScrollView'
 import { H2 } from '../common/H2'
 import { Link } from '../common/Link'
@@ -29,7 +30,6 @@ import { Spacer } from '../common/Spacer'
 import { SubHeader } from '../common/SubHeader'
 import { useAppLayout } from '../context/LayoutContext'
 import { useTheme } from '../context/ThemeContext'
-import { fabSpacing, shouldRenderFAB } from '../layout/FABRenderer'
 import { ThemedIcon } from '../themed/ThemedIcon'
 import { ThemedText } from '../themed/ThemedText'
 
@@ -255,7 +255,12 @@ function AddColumnModalItem({
           },
         ]}
       >
-        <ThemedIcon color="foregroundColor" name={icon} size={18} />
+        <ThemedIcon
+          color="foregroundColor"
+          name={icon}
+          size={18}
+          style={{ width: 20 }}
+        />
 
         <Spacer width={contentPadding / 2} />
 
@@ -276,7 +281,6 @@ export function AddColumnModal(props: AddColumnModalProps) {
 
   return (
     <ModalColumn
-      iconName="plus"
       name="ADD_COLUMN"
       showBackButton={showBackButton}
       title="Add Column"

@@ -127,13 +127,13 @@ function redirectToPH() {
   function timer() {
     var t = document.createElement('span')
     setAttributes(t, { style: 'color: #da552f' })
-    var l = 6
+    var l = 10
     var ti = setInterval(function() {
       l = l - 1
       t.textContent = '' + l
       if (l <= 1) {
         clearInterval(ti)
-        ref
+        ref && !ref.includes('?ref=producthunt')
           ? (window.location.href = ref)
           : (window.location.href = 'https://github.com/devhubapp/devhub')
       }

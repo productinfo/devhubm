@@ -2,11 +2,13 @@ import { VariableSizeList as VariableSizeListWithoutVirtualization } from '@brun
 import React, {
   Fragment,
   useContext,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react'
-import { View } from 'react-native'
+import { Dimensions, InteractionManager, View } from 'react-native'
 import {
   ListChildComponentProps,
   VariableSizeList,
@@ -187,47 +189,9 @@ const innerElementType = React.forwardRef<
 
 export const OneList = (React.memo(
   React.forwardRef<OneListInstance, OneListProps<any>>((props, ref) => {
-    const List = props.disableVirtualization
-      ? VariableSizeListWithoutVirtualization
-      : VariableSizeList
-
-    React.useImperativeHandle(
-      ref,
-      () => ({
-        scrollToStart: () => {
-          try {
-            variableSizeListRef.current!.scrollTo(0)
-          } catch (error) {
-            console.error(error)
-            bugsnag.notify(error)
-          }
-        },
-        scrollToEnd: () => {
-          try {
-            variableSizeListRef.current!.scrollToItem(
-              props.data.length - 1,
-              'start',
-            )
-          } catch (error) {
-            console.error(error)
-            bugsnag.notify(error)
-          }
-        },
-        scrollToIndex: (index, params) => {
-          try {
-            const alignment = params ? params.alignment : 'smart'
-            variableSizeListRef.current!.scrollToItem(index, alignment)
-          } catch (error) {
-            console.error(error)
-            bugsnag.notify(error)
-          }
-        },
-      }),
-      [props.data.length],
-    )
-
     const {
       ListEmptyComponent,
+      containerStyle,
       data,
       estimatedItemSize,
       footer,
@@ -236,6 +200,7 @@ export const OneList = (React.memo(
       header,
       horizontal,
       itemSeparator,
+      listStyle,
       onVisibleItemsChanged,
       overscanCount,
       pagingEnabled,
@@ -246,10 +211,57 @@ export const OneList = (React.memo(
       snapToAlignment,
     } = props
 
+    React.useImperativeHandle(
+      ref,
+      () => ({
+        scrollToStart: () => {
+          try {
+            if (!variableSizeListRef.current) return
+            variableSizeListRef.current.scrollTo(0)
+          } catch (error) {
+            console.error(error)
+            bugsnag.notify(error)
+          }
+        },
+        scrollToEnd: () => {
+          try {
+            if (!variableSizeListRef.current) return
+            variableSizeListRef.current.scrollToItem(data.length - 1, 'start')
+          } catch (error) {
+            console.error(error)
+            bugsnag.notify(error)
+          }
+        },
+        scrollToIndex: (index, params) => {
+          try {
+            const alignment = params ? params.alignment : 'smart'
+            if (!variableSizeListRef.current) return
+            variableSizeListRef.current.scrollToItem(index, alignment)
+          } catch (error) {
+            console.error(error)
+            bugsnag.notify(error)
+          }
+        },
+      }),
+      [data.length],
+    )
+
     const variableSizeListRef = useRef<VariableSizeList>(null)
     const variableSizeListInnerRef = useRef<
       React.HTMLAttributes<React.ReactHTMLElement<HTMLDivElement>>
     >(null)
+
+    const [isInitialRender, setIsInitialRender] = useState(true)
+
+    useEffect(() => {
+      InteractionManager.runAfterInteractions(() => {
+        setIsInitialRender(false)
+      })
+    }, [])
+
+    const List = props.disableVirtualization
+      ? VariableSizeListWithoutVirtualization
+      : VariableSizeList
 
     const itemSeparatorSize =
       itemSeparator && itemSeparator.Component && itemSeparator.size > 0
@@ -266,8 +278,32 @@ export const OneList = (React.memo(
         ? footer.size
         : 0
 
-    const itemCount =
+    const _itemCount =
       data.length + (innerHeaderSize ? 1 : 0) + (innerFooterSize ? 1 : 0)
+    let itemCount = _itemCount
+
+    if (isInitialRender) {
+      const totalScreenSize = horizontal
+        ? Dimensions.get('window').width
+        : Dimensions.get('window').height
+
+      let initialNumToRender = 0
+      let totalRenderedSize = 0
+      data.every((item, index) => {
+        const size = getItemSize(item, index)
+        totalRenderedSize = totalRenderedSize + size
+        initialNumToRender = initialNumToRender + 1
+
+        return totalRenderedSize < totalScreenSize
+      })
+
+      itemCount = Math.min(
+        initialNumToRender +
+          (innerHeaderSize ? 1 : 0) +
+          (innerFooterSize ? 1 : 0),
+        _itemCount,
+      )
+    }
 
     const itemKey = useMemo<VariableSizeListProps['itemKey']>(() => {
       return index => {
@@ -349,14 +385,14 @@ export const OneList = (React.memo(
       }
     }, [itemCount, itemSize, previousItemCount, previousItemSize])
 
-    const style = useMemo(
+    const style = useMemo<VariableSizeListProps['style']>(
       () =>
         pagingEnabled
           ? {
               scrollSnapType: horizontal ? 'x mandatory' : 'y mandatory',
             }
           : undefined,
-      [pagingEnabled, horizontal],
+      [horizontal, listStyle, pagingEnabled],
     )
 
     const itemData = useMemo<ItemData>(
@@ -395,6 +431,7 @@ export const OneList = (React.memo(
           sharedStyles.flex,
           sharedStyles.fullWidth,
           sharedStyles.fullHeight,
+          containerStyle,
         ]}
       >
         {header &&
@@ -409,6 +446,7 @@ export const OneList = (React.memo(
             sharedStyles.flex,
             sharedStyles.fullWidth,
             sharedStyles.fullHeight,
+            listStyle,
           ]}
         >
           {data.length > 0 ? (

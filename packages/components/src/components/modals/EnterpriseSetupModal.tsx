@@ -21,15 +21,12 @@ export function EnterpriseSetupModal(props: EnterpriseSetupModalProps) {
   const { showBackButton } = props
 
   const [copied, setCopied] = useState(false)
-
-  const userId = useReduxState(selectors.currentUserIdSelector)
   const username = useReduxState(selectors.currentGitHubUsernameSelector)
 
   const email = `enterprise${'@'}devhubapp.com`
 
   return (
     <ModalColumn
-      iconName="plus"
       name="SETUP_GITHUB_ENTERPRISE"
       showBackButton={showBackButton}
       title="GitHub Enterprise"
@@ -63,7 +60,6 @@ export function EnterpriseSetupModal(props: EnterpriseSetupModalProps) {
           analyticsCategory="enterprise"
           analyticsAction="copy_email"
           analyticsLabel={username}
-          analyticsPayload={{ user_id: userId }}
           onPress={async () => {
             Clipboard.setString(email)
             setCopied(true)

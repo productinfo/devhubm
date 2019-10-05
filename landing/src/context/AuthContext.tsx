@@ -8,7 +8,11 @@ import React, {
   useState,
 } from 'react'
 
-import { constants, getDefaultUserPlan, UserPlan } from '@devhub/core/dist'
+import {
+  constants,
+  getDefaultUserPlan,
+  UserPlan,
+} from '@brunolemos/devhub-core/dist'
 import { getDefaultDevHubHeaders } from '../helpers'
 
 export interface AuthProviderProps {
@@ -126,9 +130,12 @@ export function AuthProvider(props: AuthProviderProps) {
             method: 'POST',
             body: JSON.stringify({
               query: `
-          mutation {
-            cancelSubscription
-          }`,
+                mutation($input: CancelSubscriptionInput) {
+                  cancelSubscription(input: $input)
+              }`,
+              variables: {
+                input: {},
+              },
             }),
             headers: {
               ...getDefaultDevHubHeaders({ appToken: authData.appToken }),
@@ -258,6 +265,8 @@ export function AuthProvider(props: AuthProviderProps) {
 
                   currentPeriodStartAt
                   currentPeriodEndAt
+
+                  reason
 
                   featureFlags {
                     columnsLimit
